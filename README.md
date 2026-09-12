@@ -67,6 +67,8 @@ npm run dev
 - **Admin Control Center**: [http://localhost:4001](http://localhost:4001)
 - **Core API Health / OpenAPI**: [http://localhost:4000/health](http://localhost:4000/health)
 
+👉 **For a step-by-step presentation script, see the [Interactive Demo Guide](DEMO_GUIDE.md)** detailing 10 interactive scenarios (SSE live sync, targeting rules, prerequisites, percentage rollouts, segments, schema validation, lifecycle states, scheduled changes, audit diffs, and analytics).
+
 ---
 
 ## Running Automated Tests
