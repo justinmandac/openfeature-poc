@@ -1,0 +1,33 @@
+{
+  "name": "openfeature-admin-webapp",
+  "version": "1.0.0",
+  "description": "Admin Web App for Feature Flag and Dynamic Configuration Management",
+  "main": "src/server.js",
+  "scripts": {
+    "build:client": "vite build",
+    "dev:client": "vite build --watch",
+    "dev:server": "nodemon src/server.js",
+    "dev": "npm run build:client && concurrently -n \"server,client\" -c \"cyan,yellow\" \"nodemon src/server.js\" \"vite build --watch\"",
+    "start": "node src/server.js",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "lucide-react": "^0.475.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.1.0"
+  }
+}
