@@ -1,0 +1,202 @@
+import React, { useState } from 'react';
+import {
+  PieChart,
+  Calculator,
+  TrendingUp,
+  DollarSign,
+  ArrowUpRight,
+  ShieldAlert,
+  Sparkles,
+  CheckCircle,
+  Percent
+} from 'lucide-react';
+
+/**
+ * Portfolio Breakdown Card Widget
+ */
+export function PortfolioCard({ data, title }) {
+  return (
+    <div className="mt-3 p-4 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg text-xs space-y-3">
+      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div className="flex items-center space-x-2 font-semibold text-white">
+          <PieChart className="w-4 h-4 text-blue-400" />
+          <span>{title || 'Asset Allocation'}</span>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+          Generative UI Widget
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {data.map((item) => (
+          <div key={item.asset} className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
+            <div className="flex items-center justify-between text-slate-400 text-[11px]">
+              <span>{item.asset}</span>
+              <span className="font-bold text-white">{item.percent}%</span>
+            </div>
+            <div className="text-sm font-bold text-slate-100 mt-1">
+              ${item.value.toLocaleString()}
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${item.percent}%`, backgroundColor: item.color || '#3B82F6' }}
+              ></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Instant Loan Simulator Widget
+ */
+export function LoanCalculatorCard({ data, title }) {
+  const [amount, setAmount] = useState(data.principal || 50000);
+  const [tenure, setTenure] = useState(data.tenureMonths || 36);
+  const rate = data.ratePercent || 3.88;
+
+  // Monthly loan payment formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+  const monthlyRate = (rate / 100) / 12;
+  const calculatedMonthly = Math.round(
+    (amount * (monthlyRate * Math.pow(1 + monthlyRate, tenure))) /
+    (Math.pow(1 + monthlyRate, tenure) - 1)
+  );
+
+  return (
+    <div className="mt-3 p-4 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg text-xs space-y-3">
+      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div className="flex items-center space-x-2 font-semibold text-white">
+          <Calculator className="w-4 h-4 text-emerald-400" />
+          <span>{title || 'Loan Simulator'}</span>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+          Interactive Generative UI
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+            <span>Loan Amount:</span>
+            <span className="font-bold text-white">${amount.toLocaleString()} {data.currency}</span>
+          </div>
+          <input
+            type="range"
+            min={10000}
+            max={200000}
+            step={5000}
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+          />
+        </div>
+
+        <div>
+          <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+            <span>Tenure:</span>
+            <span className="font-bold text-white">{tenure} Months ({Math.round(tenure/12)} Yrs)</span>
+          </div>
+          <input
+            type="range"
+            min={12}
+            max={60}
+            step={12}
+            value={tenure}
+            onChange={(e) => setTenure(Number(e.target.value))}
+            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+          />
+        </div>
+
+        <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">Estimated Payment</div>
+            <div className="text-base font-extrabold text-white">${calculatedMonthly.toLocaleString()} / mo</div>
+          </div>
+          <button className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] shadow-sm transition-colors">
+            Apply Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * AI Wealth Projection Widget (Tied to feature.advanced-financial-insights)
+ */
+export function WealthInsightsCard({ data, title }) {
+  return (
+    <div className="mt-3 p-4 rounded-xl bg-slate-900/90 border border-purple-800/60 shadow-lg text-xs space-y-3">
+      <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
+        <div className="flex items-center space-x-2 font-semibold text-purple-300">
+          <Sparkles className="w-4 h-4 text-purple-400" />
+          <span>{title || 'AI Wealth Projection'}</span>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800">
+          Premier Tier Unlocked
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-lg bg-slate-950 border border-purple-950">
+          <div className="text-[10px] text-slate-400">Current Net Worth</div>
+          <div className="text-sm font-bold text-white mt-0.5">${data.currentNetWorth.toLocaleString()}</div>
+        </div>
+        <div className="p-3 rounded-lg bg-purple-950/50 border border-purple-800/60">
+          <div className="text-[10px] text-purple-300">5-Yr Target Value</div>
+          <div className="text-sm font-bold text-purple-200 mt-0.5">${data.projected5Yr.toLocaleString()} ({data.compoundAnnualGrowthRate})</div>
+        </div>
+      </div>
+
+      {data.recommendations && (
+        <div className="space-y-1.5 pt-1">
+          <div className="text-[11px] font-semibold text-slate-300">AI Portfolio Optimizations:</div>
+          {data.recommendations.map((rec, i) => (
+            <div key={i} className="flex items-start space-x-2 text-[11px] text-slate-400">
+              <CheckCircle className="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" />
+              <span>{rec}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * FX Rates Card Widget
+ */
+export function FxRatesCard({ data, title }) {
+  return (
+    <div className="mt-3 p-4 rounded-xl bg-slate-900/90 border border-slate-700/80 shadow-lg text-xs space-y-3">
+      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div className="flex items-center space-x-2 font-semibold text-white">
+          <DollarSign className="w-4 h-4 text-amber-400" />
+          <span>{title || 'Interbank Rates'}</span>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
+          Live Market Feed
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {data.map((pair) => (
+          <div key={pair.pair} className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex justify-between items-center">
+            <div>
+              <div className="font-mono font-bold text-white text-xs">{pair.pair}</div>
+              <div className="text-slate-400 font-mono text-[11px]">{pair.rate}</div>
+            </div>
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+              pair.change.startsWith('+') ? 'bg-emerald-950 text-emerald-300' : 'bg-rose-950 text-rose-300'
+            }`}>
+              {pair.change}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
