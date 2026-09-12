@@ -1,0 +1,24 @@
+{
+  "name": "open-feature-poc",
+  "version": "1.0.0",
+  "description": "OpenFeature Enterprise Proof-of-Concept monorepo",
+  "private": true,
+  "workspaces": [
+    "api",
+    "admin-webapp",
+    "webapp-bff",
+    "webapp"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace=api run dev",
+    "dev:admin": "npm --workspace=admin-webapp run dev",
+    "dev:bff": "npm --workspace=webapp-bff run dev",
+    "dev:webapp": "npm --workspace=webapp run dev",
+    "dev": "concurrently -n \"api,admin,bff,web\" -c \"blue,green,yellow,magenta\" \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:bff\" \"npm run dev:webapp\"",
+    "test": "npm --workspace=api test && npm --workspace=webapp-bff test",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
