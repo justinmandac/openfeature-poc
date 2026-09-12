@@ -18,6 +18,7 @@ export class OfrepWebProvider {
     this.currentContext = {};
     this.eventSource = null;
     this.status = 'NOT_READY';
+    this.etag = null;
   }
 
   async initialize(context) {
@@ -45,6 +46,7 @@ export class OfrepWebProvider {
       this.eventSource.addEventListener('PROVIDER_CONFIGURATION_CHANGED', async (event) => {
         try {
           const payload = JSON.parse(event.data);
+          this.etag = null; // Clear cached etag on event
           await this.refreshFlags();
           this.events.emit(ProviderEvents.ConfigurationChanged, {
             flagsChanged: payload.flagsChanged || [],
@@ -65,6 +67,7 @@ export class OfrepWebProvider {
 
   async onContextChange(oldContext, newContext) {
     this.currentContext = newContext || {};
+    this.etag = null;
     await this.refreshFlags();
     this.events.emit(ProviderEvents.ConfigurationChanged, {
       message: 'Context changed, flags re-evaluated'
@@ -73,19 +76,46 @@ export class OfrepWebProvider {
 
   async refreshFlags() {
     try {
+      const headers = {};
+      if (this.etag) {
+        headers['If-None-Match'] = this.etag;
+      }
+
       const response = await axios.post(
         `${this.baseUrl}/ofrep/v1/evaluate/flags`,
         { context: this.currentContext },
-        { timeout: 4000 }
+        { headers, timeout: 4000, validateStatus: status => status === 200 || status === 304 }
       );
 
-      const flags = response.data.flags || [];
+      if (response.status === 304) {
+        // Cache is fresh, no re-parsing needed
+        return;
+      }
+
+      if (response.headers.etag) {
+        this.etag = response.headers.etag;
+      }
+
+      const flags = response.data?.flags || [];
       this.cachedFlags.clear();
       for (const flag of flags) {
         this.cachedFlags.set(flag.key, flag);
       }
     } catch (err) {
       console.warn('[OfrepWebProvider] Failed to bulk fetch flags:', err.message);
+    }
+  }
+
+  async track(eventName, context = {}, details = {}) {
+    try {
+      await axios.post(`${this.baseUrl}/api/v1/analytics/track`, {
+        eventName,
+        targetingKey: context.targetingKey || this.currentContext.targetingKey,
+        context: { ...this.currentContext, ...context },
+        details
+      }, { timeout: 2000 });
+    } catch (e) {
+      console.warn('Track event dispatch failed:', e.message);
     }
   }
 

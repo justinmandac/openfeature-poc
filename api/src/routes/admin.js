@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const flagService = require('../services/flagService');
+const schedulerService = require('../services/schedulerService');
+const analyticsService = require('../services/analyticsService');
 const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
 
@@ -12,8 +14,14 @@ addFormats(ajv);
  */
 router.get('/flags', async (req, res) => {
   try {
-    const { appTag, type, state } = req.query;
-    const flags = await flagService.getAllFlags({ appTag, type, state });
+    const { appTag, type, state, lifecycleState, includeArchived } = req.query;
+    const flags = await flagService.getAllFlags({
+      appTag,
+      type,
+      state,
+      lifecycleState,
+      includeArchived: includeArchived === 'true'
+    });
     res.json({ flags });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -73,7 +81,43 @@ router.patch('/flags/:key/state', async (req, res) => {
     }
     const author = req.headers['x-author'] || req.body.author || 'admin-user';
     const reason = `Toggled state to ${state}`;
-    const flag = await flagService.updateFlag(req.params.key, { state }, author, reason);
+    const flag = await flagService.updateFlag(req.params.key, {
+      state,
+      lifecycle_state: state === 'ENABLED' ? 'ENABLED' : 'DISABLED'
+    }, author, reason);
+    res.json({ flag });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * PATCH /api/v1/admin/flags/:key/lifecycle (Lifecycle transition: DRAFT, ENABLED, DISABLED, GRADUATED, ARCHIVED)
+ */
+router.patch('/flags/:key/lifecycle', async (req, res) => {
+  try {
+    const { lifecycle_state, graduated_variant } = req.body;
+    const validStates = ['DRAFT', 'ENABLED', 'DISABLED', 'GRADUATED', 'ARCHIVED'];
+    if (!validStates.includes(lifecycle_state)) {
+      return res.status(400).json({ error: `Invalid lifecycle state. Must be one of: ${validStates.join(', ')}` });
+    }
+
+    const author = req.headers['x-author'] || req.body.author || 'admin-user';
+    const reason = `Transitioned lifecycle state to ${lifecycle_state}`;
+
+    const updatePayload = {
+      lifecycle_state,
+      state: (lifecycle_state === 'ENABLED' || lifecycle_state === 'GRADUATED') ? 'ENABLED' : 'DISABLED'
+    };
+
+    if (lifecycle_state === 'GRADUATED') {
+      if (!graduated_variant) {
+        return res.status(400).json({ error: 'Graduating a flag requires specifying graduated_variant' });
+      }
+      updatePayload.graduated_variant = graduated_variant;
+    }
+
+    const flag = await flagService.updateFlag(req.params.key, updatePayload, author, reason);
     res.json({ flag });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -130,6 +174,92 @@ router.post('/flags/validate-schema', (req, res) => {
     return res.json({ valid: true });
   } catch (error) {
     return res.status(400).json({ valid: false, error: error.message });
+  }
+});
+
+// --- Reusable Segments Endpoints ---
+router.get('/segments', async (req, res) => {
+  try {
+    const segments = await flagService.getAllSegments();
+    res.json({ segments });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/segments', async (req, res) => {
+  try {
+    const segment = await flagService.createSegment(req.body);
+    res.status(201).json({ segment });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.put('/segments/:id', async (req, res) => {
+  try {
+    const segment = await flagService.updateSegment(req.params.id, req.body);
+    res.json({ segment });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/segments/:id', async (req, res) => {
+  try {
+    const result = await flagService.deleteSegment(req.params.id);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// --- Scheduled Changes Endpoints ---
+router.get('/scheduled-changes', async (req, res) => {
+  try {
+    const changes = await schedulerService.getScheduledChanges(req.query.flagKey);
+    res.json({ scheduledChanges: changes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/scheduled-changes', async (req, res) => {
+  try {
+    const author = req.headers['x-author'] || req.body.author || 'admin-user';
+    const change = await schedulerService.scheduleChange({ ...req.body, author });
+    res.status(201).json({ scheduledChange: change });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete('/scheduled-changes/:id', async (req, res) => {
+  try {
+    const result = await schedulerService.cancelScheduledChange(req.params.id);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// --- Analytics & Stale Flags Hygiene Endpoints ---
+router.get('/analytics', async (req, res) => {
+  try {
+    const summary = await analyticsService.getEvaluationSummary();
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/hygiene', async (req, res) => {
+  try {
+    const flags = await flagService.getAllFlags({ includeArchived: true });
+    const issues = await analyticsService.getFlagHygieneReport(flags);
+    res.json({ hygieneIssues: issues });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

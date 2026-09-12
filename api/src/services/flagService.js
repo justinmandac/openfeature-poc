@@ -2,13 +2,11 @@ const db = require('../db/connection');
 const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
 const flagEvents = require('./eventEmitter');
+const schedulerService = require('./schedulerService');
 
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
 
-/**
- * Validates variants against a JSON schema if provided.
- */
 function validateAgainstSchema(schemaObj, variants) {
   let validate;
   try {
@@ -26,9 +24,6 @@ function validateAgainstSchema(schemaObj, variants) {
   }
 }
 
-/**
- * Computes human-readable relative age string.
- */
 function calculateAge(date) {
   const diffMs = Date.now() - new Date(date).getTime();
   const diffSec = Math.floor(diffMs / 1000);
@@ -41,22 +36,33 @@ function calculateAge(date) {
   return `${diffDays}d ago`;
 }
 
-/**
- * Format raw database row to JavaScript object with parsed JSON columns.
- */
 function formatFlagRow(row) {
   if (!row) return null;
   return {
     ...row,
     variants: typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants,
     rules: typeof row.rules === 'string' ? JSON.parse(row.rules || '[]') : (row.rules || []),
+    prerequisites: typeof row.prerequisites === 'string' ? JSON.parse(row.prerequisites || '[]') : (row.prerequisites || []),
     schema: row.schema && typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema,
     app_tags: typeof row.app_tags === 'string' ? JSON.parse(row.app_tags || '[]') : (row.app_tags || []),
+    lifecycle_state: row.lifecycle_state || row.state || 'ENABLED',
     age: calculateAge(row.created_at)
   };
 }
 
+function formatSegmentRow(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    condition: typeof row.condition === 'string' ? JSON.parse(row.condition) : row.condition
+  };
+}
+
 class FlagService {
+  constructor() {
+    schedulerService.setFlagService(this);
+  }
+
   async getAllFlags(filters = {}) {
     let query = db('flags').select('*').orderBy('key', 'asc');
 
@@ -72,6 +78,13 @@ class FlagService {
     if (filters.state) {
       flags = flags.filter(f => f.state === filters.state);
     }
+    if (filters.lifecycleState) {
+      flags = flags.filter(f => f.lifecycle_state === filters.lifecycleState);
+    }
+    // Filter out ARCHIVED from active lists unless explicitly requested
+    if (!filters.includeArchived) {
+      flags = flags.filter(f => f.lifecycle_state !== 'ARCHIVED');
+    }
 
     return flags;
   }
@@ -81,8 +94,39 @@ class FlagService {
     return formatFlagRow(row);
   }
 
+  async getEvaluationContextMaps() {
+    const [flags, segments] = await Promise.all([
+      db('flags').select('*'),
+      db('segments').select('*')
+    ]);
+
+    const allFlagsMap = {};
+    for (const f of flags) {
+      allFlagsMap[f.key] = formatFlagRow(f);
+    }
+
+    const segmentsMap = {};
+    for (const s of segments) {
+      segmentsMap[s.id] = formatSegmentRow(s);
+    }
+
+    return { allFlagsMap, segmentsMap };
+  }
+
   async createFlag(data, author = 'admin') {
-    const { key, type, state = 'ENABLED', default_variant, variants, rules = [], schema = null, app_tags = ['webapp', 'bff'], description } = data;
+    const {
+      key,
+      type,
+      state = 'ENABLED',
+      lifecycle_state = 'ENABLED',
+      default_variant,
+      variants,
+      rules = [],
+      prerequisites = [],
+      schema = null,
+      app_tags = ['webapp', 'bff'],
+      description
+    } = data;
 
     if (!key || !type || !default_variant || !variants || !description) {
       throw new Error('Missing required fields: key, type, default_variant, variants, description');
@@ -92,12 +136,10 @@ class FlagService {
       throw new Error(`Default variant "${default_variant}" must exist in defined variants`);
     }
 
-    // Validate schema if provided
     if (schema) {
       validateAgainstSchema(typeof schema === 'string' ? JSON.parse(schema) : schema, variants);
     }
 
-    // Check key uniqueness
     const existing = await db('flags').where({ key }).first();
     if (existing) {
       throw new Error(`Flag with key "${key}" already exists`);
@@ -107,9 +149,11 @@ class FlagService {
       key,
       type,
       state,
+      lifecycle_state,
       default_variant,
       variants: JSON.stringify(variants),
       rules: JSON.stringify(rules),
+      prerequisites: JSON.stringify(prerequisites),
       schema: schema ? JSON.stringify(schema) : null,
       app_tags: JSON.stringify(app_tags),
       description,
@@ -120,7 +164,6 @@ class FlagService {
 
     await db('flags').insert(newRecord);
 
-    // Record initial history
     await db('flag_history').insert({
       flag_key: key,
       version: 1,
@@ -147,6 +190,10 @@ class FlagService {
       throw new Error(`Flag with key "${key}" not found`);
     }
 
+    if (existing.lifecycle_state === 'GRADUATED' && updates.lifecycle_state !== 'ENABLED') {
+      throw new Error(`Flag "${key}" is GRADUATED (frozen read-only). You must un-graduate it before changing configuration.`);
+    }
+
     const merged = {
       ...existing,
       ...updates
@@ -164,9 +211,12 @@ class FlagService {
     const updateRecord = {
       type: merged.type,
       state: merged.state,
+      lifecycle_state: merged.lifecycle_state || merged.state,
       default_variant: merged.default_variant,
+      graduated_variant: merged.graduated_variant || null,
       variants: JSON.stringify(merged.variants),
       rules: JSON.stringify(merged.rules),
+      prerequisites: JSON.stringify(merged.prerequisites || []),
       schema: merged.schema ? JSON.stringify(merged.schema) : null,
       app_tags: JSON.stringify(merged.app_tags),
       description: merged.description,
@@ -174,7 +224,6 @@ class FlagService {
       updated_at: new Date().toISOString()
     };
 
-    // Calculate diff
     const diff = {
       action: 'UPDATED',
       previous_version: existing.version,
@@ -182,7 +231,7 @@ class FlagService {
       changes: {}
     };
 
-    for (const prop of ['state', 'default_variant', 'variants', 'rules', 'schema', 'app_tags', 'description']) {
+    for (const prop of ['state', 'lifecycle_state', 'default_variant', 'variants', 'rules', 'prerequisites', 'schema', 'app_tags', 'description']) {
       if (JSON.stringify(existing[prop]) !== JSON.stringify(merged[prop])) {
         diff.changes[prop] = {
           from: existing[prop],
@@ -193,7 +242,6 @@ class FlagService {
 
     await db('flags').where({ key }).update(updateRecord);
 
-    // Add immutable history entry
     await db('flag_history').insert({
       flag_key: key,
       version: nextVersion,
@@ -255,6 +303,59 @@ class FlagService {
       diff: typeof r.diff === 'string' ? JSON.parse(r.diff) : r.diff,
       age: calculateAge(r.created_at)
     }));
+  }
+
+  // --- Segments Management ---
+  async getAllSegments() {
+    const rows = await db('segments').select('*').orderBy('name', 'asc');
+    return rows.map(formatSegmentRow);
+  }
+
+  async createSegment(data) {
+    const { id, name, description, condition } = data;
+    if (!id || !name || !condition) {
+      throw new Error('Missing required fields for segment: id, name, condition');
+    }
+
+    const existing = await db('segments').where({ id }).first();
+    if (existing) {
+      throw new Error(`Segment with ID "${id}" already exists`);
+    }
+
+    const record = {
+      id,
+      name,
+      description: description || '',
+      condition: typeof condition === 'string' ? condition : JSON.stringify(condition),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    await db('segments').insert(record);
+    return formatSegmentRow(record);
+  }
+
+  async updateSegment(id, updates) {
+    const existing = await db('segments').where({ id }).first();
+    if (!existing) {
+      throw new Error(`Segment "${id}" not found`);
+    }
+
+    const updateRecord = {
+      name: updates.name || existing.name,
+      description: updates.description !== undefined ? updates.description : existing.description,
+      condition: updates.condition ? (typeof updates.condition === 'string' ? updates.condition : JSON.stringify(updates.condition)) : existing.condition,
+      updated_at: new Date().toISOString()
+    };
+
+    await db('segments').where({ id }).update(updateRecord);
+    const updated = await db('segments').where({ id }).first();
+    return formatSegmentRow(updated);
+  }
+
+  async deleteSegment(id) {
+    await db('segments').where({ id }).del();
+    return { success: true, id };
   }
 }
 

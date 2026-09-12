@@ -96,6 +96,7 @@ export default function App() {
           flag={editingFlag}
           isEditing={!!editingFlag}
           apiUrl={apiUrl}
+          allFlags={flags}
           onClose={() => {
             setIsCreating(false);
             setEditingFlag(null);

@@ -2,6 +2,7 @@ const app = require('./app');
 const db = require('./db/connection');
 const runMigrations = require('./db/runMigrations');
 const runSeeds = require('./db/runSeeds');
+const schedulerService = require('./services/schedulerService');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 4000;
@@ -17,6 +18,9 @@ async function start() {
       console.log('Database empty, seeding default OpenFeature flags...');
       await runSeeds();
     }
+
+    // Start background scheduled change processor
+    schedulerService.start();
 
     const server = app.listen(PORT, () => {
       console.log(`🚀 OpenFeature Core API listening on http://localhost:${PORT}`);

@@ -1,18 +1,26 @@
-import React, { useState } from 'react';
-import { X, Check, AlertCircle, Plus, Trash2, Code2, ShieldCheck, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Check, AlertCircle, Plus, Trash2, ShieldCheck, Sparkles, Sliders, Layers, Link2 } from 'lucide-react';
 import axios from 'axios';
 
-export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved }) {
+export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved, allFlags = [] }) {
   const [key, setKey] = useState(flag?.key || '');
   const [type, setType] = useState(flag?.type || 'BOOLEAN');
   const [state, setState] = useState(flag?.state || 'ENABLED');
+  const [lifecycleState, setLifecycleState] = useState(flag?.lifecycle_state || 'ENABLED');
+  const [graduatedVariant, setGraduatedVariant] = useState(flag?.graduated_variant || '');
   const [defaultVariant, setDefaultVariant] = useState(flag?.default_variant || (flag?.type === 'BOOLEAN' ? 'on' : 'standard'));
   const [description, setDescription] = useState(flag?.description || '');
   const [appTags, setAppTags] = useState(flag?.app_tags || ['webapp', 'bff']);
   const [changeReason, setChangeReason] = useState('');
   const [author, setAuthor] = useState('admin-user');
 
-  // Variants state (JSON string for editor)
+  // Prerequisites state
+  const [prerequisites, setPrerequisites] = useState(flag?.prerequisites || []);
+
+  // Segments available
+  const [segments, setSegments] = useState([]);
+
+  // Variants state
   const [variantsJson, setVariantsJson] = useState(
     flag?.variants 
       ? JSON.stringify(flag.variants, null, 2)
@@ -31,7 +39,18 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
   const [schemaTestResult, setSchemaTestResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Handle Type Change
+  useEffect(() => {
+    async function loadSegments() {
+      try {
+        const res = await axios.get(`${apiUrl}/api/v1/admin/segments`);
+        setSegments(res.data.segments || []);
+      } catch (e) {
+        console.warn('Could not load segments:', e);
+      }
+    }
+    loadSegments();
+  }, [apiUrl]);
+
   const handleTypeChange = (newType) => {
     setType(newType);
     if (newType === 'BOOLEAN') {
@@ -49,25 +68,32 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
         premium: { maxTokens: 2000, temperature: 0.7 }
       }, null, 2));
       setDefaultVariant('standard');
-      if (!schemaJson) {
-        setSchemaJson(JSON.stringify({
-          type: 'object',
-          required: ['maxTokens', 'temperature'],
-          properties: {
-            maxTokens: { type: 'integer', minimum: 50 },
-            temperature: { type: 'number', minimum: 0, maximum: 1 }
-          }
-        }, null, 2));
-      }
     }
   };
 
-  // Add a targeting rule
+  // Add Prerequisite
+  const handleAddPrerequisite = () => {
+    const otherFlags = allFlags.filter(f => f.key !== key);
+    const firstOther = otherFlags[0]?.key || 'feature.chatbot-gemini-ui';
+    setPrerequisites([...prerequisites, { flagKey: firstOther, variant: 'on' }]);
+  };
+
+  const handleUpdatePrerequisite = (index, field, value) => {
+    const updated = [...prerequisites];
+    updated[index][field] = value;
+    setPrerequisites(updated);
+  };
+
+  const handleRemovePrerequisite = (index) => {
+    setPrerequisites(prerequisites.filter((_, i) => i !== index));
+  };
+
+  // Add Rule
   const handleAddRule = () => {
     const newRule = {
       id: `rule-${Date.now().toString().slice(-4)}`,
       priority: rules.length + 1,
-      description: 'Target specific context condition',
+      description: 'Target specific condition or percentage',
       condition: { country: 'SG' },
       variant: defaultVariant
     };
@@ -80,7 +106,19 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
       try {
         updated[index].condition = JSON.parse(value);
       } catch (e) {
-        // keep string temporary or handle gracefully
+        // preserve temporary input
+      }
+    } else if (field === 'percentage') {
+      const pct = Number(value);
+      if (pct > 0 && pct < 100) {
+        updated[index].rollout = {
+          attribute: 'targetingKey',
+          percentage: pct,
+          variant: updated[index].variant || defaultVariant,
+          fallbackVariant: defaultVariant
+        };
+      } else {
+        delete updated[index].rollout;
       }
     } else {
       updated[index][field] = value;
@@ -93,7 +131,6 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
     setRules(updated);
   };
 
-  // Test JSON Schema
   const handleTestSchema = async () => {
     try {
       setSchemaTestResult(null);
@@ -115,7 +152,6 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
     }
   };
 
-  // Save flag
   const handleSubmit = async (e) => {
     e.preventDefault();
     setValidationError(null);
@@ -145,10 +181,13 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
     const payload = {
       key,
       type,
-      state,
+      state: (lifecycleState === 'ENABLED' || lifecycleState === 'GRADUATED') ? 'ENABLED' : 'DISABLED',
+      lifecycle_state: lifecycleState,
+      graduated_variant: lifecycleState === 'GRADUATED' ? (graduatedVariant || defaultVariant) : null,
       default_variant: defaultVariant,
       variants: parsedVariants,
       rules,
+      prerequisites,
       schema: parsedSchema,
       app_tags: appTags,
       description,
@@ -184,32 +223,32 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-base font-semibold text-white">
                 {isEditing ? `Edit Flag: ${key}` : 'Create New Feature Flag / Config'}
               </h2>
               <p className="text-xs text-slate-400">
-                {isEditing ? 'Make live changes with schema validation & audit trail' : 'Define typed OpenFeature flag or dynamic config'}
+                Configure prerequisites, segments, percentage rollouts, and lifecycle state
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 text-sm">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
           {validationError && (
-            <div className="p-3 rounded-lg bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs flex items-center space-x-2">
+            <div className="p-3 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{validationError}</span>
             </div>
           )}
 
-          {/* Row 1: Key & Type */}
+          {/* Key & Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1">
                 Flag Key *
               </label>
               <input
@@ -219,19 +258,19 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
                 placeholder="e.g. feature.chatbot-v2 or config.limits"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono disabled:opacity-60"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1">
                 Type *
               </label>
               <select
                 disabled={isEditing}
                 value={type}
                 onChange={(e) => handleTypeChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-teal-500 disabled:opacity-60"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white disabled:opacity-60"
               >
                 <option value="BOOLEAN">BOOLEAN (Feature Toggle)</option>
                 <option value="STRING">STRING (Variant Switch)</option>
@@ -241,10 +280,10 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
             </div>
           </div>
 
-          {/* Row 2: Description & State */}
+          {/* Lifecycle State & Description */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1">
                 Description *
               </label>
               <input
@@ -252,167 +291,73 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
                 required
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Clear summary of what this flag controls..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-teal-500"
+                placeholder="Summary of what this flag controls..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                State
+              <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                Lifecycle State
               </label>
               <select
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-teal-500"
+                value={lifecycleState}
+                onChange={(e) => setLifecycleState(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-medium"
               >
-                <option value="ENABLED">🟢 ENABLED</option>
-                <option value="DISABLED">🔴 DISABLED</option>
+                <option value="DRAFT">🟡 DRAFT (Non-evaluable)</option>
+                <option value="ENABLED">🟢 ENABLED (Active)</option>
+                <option value="DISABLED">🔴 DISABLED (Inactive)</option>
+                <option value="GRADUATED">🔵 GRADUATED (Permanent Frozen)</option>
+                <option value="ARCHIVED">⚫ ARCHIVED (Soft deleted)</option>
               </select>
             </div>
           </div>
 
-          {/* Row 3: App Tags & Default Variant */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Default Variant Key *
-              </label>
-              <input
-                type="text"
-                required
-                value={defaultVariant}
-                onChange={(e) => setDefaultVariant(e.target.value)}
-                placeholder="e.g. on, standard, v1"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-teal-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                App Scope Tags
-              </label>
-              <div className="flex space-x-3 pt-2">
-                {['webapp', 'bff', 'api'].map((tag) => (
-                  <label key={tag} className="flex items-center space-x-1.5 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={appTags.includes(tag)}
-                      onChange={(e) => {
-                        if (e.target.checked) setAppTags([...appTags, tag]);
-                        else setAppTags(appTags.filter(t => t !== tag));
-                      }}
-                      className="rounded border-slate-700 text-teal-500 focus:ring-0 bg-slate-950"
-                    />
-                    <span className="font-mono">{tag}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Variants JSON Editor */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-              <span>Variants Dictionary (JSON) *</span>
-              <span className="text-[11px] text-slate-500 font-normal">Maps variant name to value</span>
-            </label>
-            <textarea
-              rows={4}
-              required
-              value={variantsJson}
-              onChange={(e) => setVariantsJson(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-teal-300 font-mono text-xs focus:outline-none focus:border-teal-500"
-            />
-          </div>
-
-          {/* JSON Schema Definition (If OBJECT) */}
-          {type === 'OBJECT' && (
-            <div className="p-4 rounded-lg bg-slate-950/70 border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>JSON Schema Validator (Draft 7 / 2020-12)</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={handleTestSchema}
-                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-medium transition-colors"
-                >
-                  Test Schema
-                </button>
-              </div>
-              <textarea
-                rows={4}
-                value={schemaJson}
-                onChange={(e) => setSchemaJson(e.target.value)}
-                placeholder="Optional JSON Schema object for variant validation..."
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-emerald-300 font-mono text-xs focus:outline-none focus:border-emerald-500"
-              />
-              {schemaTestResult && (
-                <div className={`p-2 rounded text-xs ${schemaTestResult.success ? 'bg-emerald-950/60 border border-emerald-800/80 text-emerald-300' : 'bg-rose-950/60 border border-rose-800/80 text-rose-300'}`}>
-                  {schemaTestResult.message}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Targeting Rules */}
-          <div className="space-y-3">
+          {/* Prerequisites (Flag Dependencies) */}
+          <div className="p-3.5 rounded-lg bg-slate-950/70 border border-slate-800 space-y-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Targeting Rules (Evaluated in Order of Priority)
+              <label className="font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                <Link2 className="w-3.5 h-3.5 text-blue-400" />
+                <span>Flag Prerequisites (Dependencies)</span>
               </label>
               <button
                 type="button"
-                onClick={handleAddRule}
-                className="flex items-center space-x-1 px-2.5 py-1 rounded bg-teal-950 border border-teal-800 text-teal-300 hover:bg-teal-900 text-xs font-medium transition-colors"
+                onClick={handleAddPrerequisite}
+                className="px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 hover:bg-blue-900 text-[11px]"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Rule</span>
+                + Add Dependency
               </button>
             </div>
 
-            {rules.length === 0 ? (
-              <div className="text-xs text-slate-500 p-3 rounded-lg border border-dashed border-slate-800 text-center">
-                No custom targeting rules. All consumers will receive the default variant.
-              </div>
+            {prerequisites.length === 0 ? (
+              <div className="text-[11px] text-slate-500">No prerequisites. Flag evaluates independently.</div>
             ) : (
               <div className="space-y-2">
-                {rules.map((rule, idx) => (
-                  <div key={rule.id || idx} className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-start space-x-3">
-                    <span className="text-xs font-bold font-mono px-2 py-1 rounded bg-slate-800 text-teal-400 mt-1">
-                      #{idx + 1}
-                    </span>
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                      <input
-                        type="text"
-                        placeholder="Rule Description"
-                        value={rule.description || ''}
-                        onChange={(e) => handleUpdateRule(idx, 'description', e.target.value)}
-                        className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white"
-                      />
-                      <input
-                        type="text"
-                        placeholder='Condition JSON e.g. {"country":"SG"}'
-                        value={typeof rule.condition === 'object' ? JSON.stringify(rule.condition) : rule.condition}
-                        onChange={(e) => handleUpdateRule(idx, 'condition', e.target.value)}
-                        className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs font-mono text-teal-300"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Target Variant"
-                        value={rule.variant}
-                        onChange={(e) => handleUpdateRule(idx, 'variant', e.target.value)}
-                        className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs font-mono text-white"
-                      />
-                    </div>
+                {prerequisites.map((prereq, idx) => (
+                  <div key={idx} className="flex items-center space-x-2 bg-slate-900 p-2 rounded border border-slate-800">
+                    <span className="text-slate-400 font-mono">Requires</span>
+                    <input
+                      type="text"
+                      placeholder="Prerequisite Flag Key"
+                      value={prereq.flagKey}
+                      onChange={(e) => handleUpdatePrerequisite(idx, 'flagKey', e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded px-2 py-1 font-mono text-white text-xs flex-1"
+                    />
+                    <span className="text-slate-400 font-mono">==</span>
+                    <input
+                      type="text"
+                      placeholder="Required Variant"
+                      value={prereq.variant}
+                      onChange={(e) => handleUpdatePrerequisite(idx, 'variant', e.target.value)}
+                      className="bg-slate-950 border border-slate-800 rounded px-2 py-1 font-mono text-teal-300 text-xs w-24"
+                    />
                     <button
                       type="button"
-                      onClick={() => handleRemoveRule(idx)}
-                      className="p-1.5 text-slate-500 hover:text-rose-400 rounded transition-colors"
+                      onClick={() => handleRemovePrerequisite(idx)}
+                      className="text-slate-500 hover:text-rose-400 p-1"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -420,49 +365,156 @@ export default function FlagModal({ flag, isEditing, apiUrl, onClose, onSaved })
             )}
           </div>
 
-          {/* Governance & Audit Meta */}
-          <div className="pt-2 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Author / Change Sign-off
-              </label>
-              <input
-                type="text"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs"
+          {/* Variants JSON Editor */}
+          <div>
+            <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span>Variants Dictionary (JSON) *</span>
+              <span className="text-[10px] text-slate-500 font-normal">Default: <strong className="text-teal-300 font-mono">{defaultVariant}</strong></span>
+            </label>
+            <textarea
+              rows={3}
+              required
+              value={variantsJson}
+              onChange={(e) => setVariantsJson(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-teal-300 font-mono"
+            />
+          </div>
+
+          {/* JSON Schema (If OBJECT) */}
+          {type === 'OBJECT' && (
+            <div className="p-3.5 rounded-lg bg-slate-950/70 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>JSON Schema Validator</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleTestSchema}
+                  className="px-2 py-0.5 rounded bg-slate-800 text-teal-300 text-[11px]"
+                >
+                  Test Schema
+                </button>
+              </div>
+              <textarea
+                rows={3}
+                value={schemaJson}
+                onChange={(e) => setSchemaJson(e.target.value)}
+                placeholder="JSON Schema for variant validation..."
+                className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-emerald-300 font-mono"
               />
+              {schemaTestResult && (
+                <div className={`p-2 rounded text-[11px] ${schemaTestResult.success ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}`}>
+                  {schemaTestResult.message}
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Change Reason (For Audit Log)
+          )}
+
+          {/* Targeting Rules (Priority, Segments & Percentage Rollout) */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="font-semibold text-slate-300 uppercase tracking-wider">
+                Targeting Rules & Percentage Rollouts
               </label>
-              <input
-                type="text"
-                placeholder="e.g. Approved by risk committee for SG rollout"
-                value={changeReason}
-                onChange={(e) => setChangeReason(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white text-xs"
-              />
+              <button
+                type="button"
+                onClick={handleAddRule}
+                className="flex items-center space-x-1 px-2 py-1 rounded bg-teal-950 border border-teal-800 text-teal-300 text-[11px]"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Add Rule</span>
+              </button>
             </div>
+
+            {rules.length === 0 ? (
+              <div className="text-[11px] text-slate-500 p-2.5 rounded border border-dashed border-slate-800 text-center">
+                No targeting rules configured. Evaluates to default variant.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {rules.map((rule, idx) => (
+                  <div key={rule.id || idx} className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold font-mono px-1.5 py-0.2 rounded bg-slate-800 text-teal-400">
+                          #{idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Rule Description"
+                          value={rule.description || ''}
+                          onChange={(e) => handleUpdateRule(idx, 'description', e.target.value)}
+                          className="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white text-xs w-60"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRule(idx)}
+                        className="text-slate-500 hover:text-rose-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block mb-0.5">Condition / Segment JSON</span>
+                        <input
+                          type="text"
+                          placeholder='{"segmentId":"segment-apac-premier"}'
+                          value={typeof rule.condition === 'object' ? JSON.stringify(rule.condition) : rule.condition}
+                          onChange={(e) => handleUpdateRule(idx, 'condition', e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 font-mono text-teal-300"
+                        />
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 block mb-0.5">Target Variant</span>
+                        <input
+                          type="text"
+                          placeholder="Variant"
+                          value={rule.variant}
+                          onChange={(e) => handleUpdateRule(idx, 'variant', e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 font-mono text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 block mb-0.5">Percentage Rollout (0-100%)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="e.g. 50"
+                          value={rule.rollout?.percentage || ''}
+                          onChange={(e) => handleUpdateRule(idx, 'percentage', e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-amber-300 font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-4 border-t border-slate-800 flex justify-end space-x-3">
+          <div className="pt-3 border-t border-slate-800 flex justify-end space-x-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+              className="px-3 py-1.5 rounded bg-slate-800 text-slate-300"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 text-xs font-semibold rounded-lg bg-teal-600 hover:bg-teal-500 text-white flex items-center space-x-1.5 shadow-lg shadow-teal-900/30 transition-all disabled:opacity-50"
+              className="px-4 py-1.5 rounded bg-teal-600 hover:bg-teal-500 text-white font-semibold flex items-center space-x-1"
             >
-              <Check className="w-4 h-4" />
-              <span>{submitting ? 'Saving...' : isEditing ? 'Save Changes & Record Revision' : 'Create Flag'}</span>
+              <Check className="w-3.5 h-3.5" />
+              <span>{submitting ? 'Saving...' : 'Save Flag'}</span>
             </button>
           </div>
         </form>

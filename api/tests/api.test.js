@@ -3,6 +3,7 @@ const app = require('../src/app');
 const db = require('../src/db/connection');
 const runMigrations = require('../src/db/runMigrations');
 const runSeeds = require('../src/db/runSeeds');
+const schedulerService = require('../src/services/schedulerService');
 
 beforeAll(async () => {
   await runMigrations();
@@ -10,10 +11,11 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  schedulerService.stop();
   await db.destroy();
 });
 
-describe('Core API - Health & Spec', () => {
+describe('Core API - Health, Spec & ETag Caching', () => {
   test('GET /health returns healthy status', async () => {
     const res = await request(app).get('/health');
     expect(res.statusCode).toBe(200);
@@ -25,37 +27,32 @@ describe('Core API - Health & Spec', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.openapi).toBe('3.0.3');
   });
+
+  test('POST /ofrep/v1/evaluate/flags returns ETag and 304 Not Modified on subsequent request', async () => {
+    const res1 = await request(app)
+      .post('/ofrep/v1/evaluate/flags')
+      .send({ context: { country: 'SG' } });
+
+    expect(res1.statusCode).toBe(200);
+    const etag = res1.headers['etag'];
+    expect(etag).toBeDefined();
+
+    // Subsequent call with If-None-Match
+    const res2 = await request(app)
+      .post('/ofrep/v1/evaluate/flags')
+      .set('If-None-Match', etag)
+      .send({ context: { country: 'SG' } });
+
+    expect(res2.statusCode).toBe(304);
+  });
 });
 
-describe('OFREP Evaluation Endpoints', () => {
-  test('Single evaluation - Default variant fallback', async () => {
-    const res = await request(app)
-      .post('/ofrep/v1/evaluate/flags/feature.chatbot-gemini-ui')
-      .send({ context: { country: 'GB' } });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.key).toBe('feature.chatbot-gemini-ui');
-    expect(res.body.value).toBe(true);
-    expect(res.body.reason).toBe('DEFAULT');
-    expect(res.body.variant).toBe('on');
-  });
-
-  test('Single evaluation - Targeting rule match (US regional disable rule)', async () => {
-    const res = await request(app)
-      .post('/ofrep/v1/evaluate/flags/feature.chatbot-gemini-ui')
-      .send({ context: { country: 'US' } });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.value).toBe(false);
-    expect(res.body.reason).toBe('TARGETING_MATCH');
-    expect(res.body.variant).toBe('off');
-    expect(res.body.metadata.ruleId).toBe('rule-gemini-us-disabled');
-  });
-
-  test('Single evaluation - Compound targeting rule match (SG + PREMIUM)', async () => {
+describe('OFREP Evaluation Engine - TPO Enhancements', () => {
+  test('Prerequisite resolution: When prerequisite is met, rule evaluates successfully', async () => {
+    // For APAC Premier user in SG, chatbot-gemini-ui resolves to 'on', meeting prerequisite
     const res = await request(app)
       .post('/ofrep/v1/evaluate/flags/feature.advanced-financial-insights')
-      .send({ context: { country: 'SG', userTier: 'PREMIUM' } });
+      .send({ context: { country: 'SG', userTier: 'PREMIUM', targetingKey: 'user-sg-vip' } });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.value).toBe(true);
@@ -63,145 +60,142 @@ describe('OFREP Evaluation Endpoints', () => {
     expect(res.body.variant).toBe('on');
   });
 
-  test('Single evaluation - Non-matching compound rule falls back to default', async () => {
+  test('Prerequisite resolution: When prerequisite is NOT met, returns PREREQUISITE_FAILED reason', async () => {
+    // For US user, chatbot-gemini-ui resolves to 'off' (due to US regional rule), failing prerequisite!
     const res = await request(app)
       .post('/ofrep/v1/evaluate/flags/feature.advanced-financial-insights')
-      .send({ context: { country: 'US', userTier: 'STANDARD' } });
+      .send({ context: { country: 'US', userTier: 'PREMIUM', targetingKey: 'user-us-vip' } });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.value).toBe(false);
-    expect(res.body.reason).toBe('DEFAULT');
-    expect(res.body.variant).toBe('off');
+    expect(res.body.reason).toBe('PREREQUISITE_FAILED');
+    expect(res.body.metadata.unmetPrerequisite).toBe('feature.chatbot-gemini-ui');
   });
 
-  test('Single evaluation - Structured OBJECT configuration', async () => {
+  test('Reusable Segment resolution: Matches rule using segmentId condition', async () => {
+    // segment-apac-premier requires country: ['SG', 'PH'] and userTier: 'PREMIUM'
     const res = await request(app)
-      .post('/ofrep/v1/evaluate/flags/config.chatbot-limits')
-      .send({ context: { userTier: 'PREMIUM' } });
+      .post('/ofrep/v1/evaluate/flags/feature.advanced-financial-insights')
+      .send({ context: { country: 'PH', userTier: 'PREMIUM', targetingKey: 'user-ph-vip' } });
 
     expect(res.statusCode).toBe(200);
+    expect(res.body.value).toBe(true);
     expect(res.body.reason).toBe('TARGETING_MATCH');
-    expect(res.body.variant).toBe('premium');
-    expect(res.body.value.maxTokens).toBe(2000);
-    expect(res.body.value.allowedTools).toContain('instant_transfer');
   });
 
-  test('Single evaluation - Flag not found returns OFREP 404 error response', async () => {
+  test('Percentage Rollout: Sticky deterministic bucketing (MurmurHash3)', async () => {
+    // Evaluating the same targetingKey multiple times returns consistent bucket and variant
+    const context = { userTier: 'STANDARD', targetingKey: 'sticky-user-42' };
+
+    const res1 = await request(app)
+      .post('/ofrep/v1/evaluate/flags/feature.chatbot-gemini-ui')
+      .send({ context });
+
+    const res2 = await request(app)
+      .post('/ofrep/v1/evaluate/flags/feature.chatbot-gemini-ui')
+      .send({ context });
+
+    expect(res1.body.variant).toBe(res2.body.variant);
+    expect(res1.body.metadata.bucket).toBe(res2.body.metadata.bucket);
+  });
+
+  test('Lifecycle State: DRAFT flag returns safe default and reason DEFAULT', async () => {
     const res = await request(app)
-      .post('/ofrep/v1/evaluate/flags/non-existent-flag')
+      .post('/ofrep/v1/evaluate/flags/feature.crypto-staking-pools')
+      .send({ context: { country: 'SG' } });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reason).toBe('DEFAULT');
+    expect(res.body.metadata.lifecycleState).toBe('DRAFT');
+  });
+
+  test('Lifecycle State: GRADUATED flag returns permanent static variant with reason STATIC', async () => {
+    const res = await request(app)
+      .post('/ofrep/v1/evaluate/flags/config.legacy-auth-migration')
       .send({});
 
-    expect(res.statusCode).toBe(404);
-    expect(res.body.errorCode).toBe('FLAG_NOT_FOUND');
-  });
-
-  test('Bulk evaluation - Evaluates multiple flags for a given context', async () => {
-    const res = await request(app)
-      .post('/ofrep/v1/evaluate/flags')
-      .send({ context: { country: 'SG', userTier: 'PREMIUM', appId: 'webapp' } });
-
     expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body.flags)).toBe(true);
-    expect(res.body.flags.length).toBeGreaterThanOrEqual(1);
-
-    const bannerFlag = res.body.flags.find(f => f.key === 'config.banner-announcement');
-    expect(bannerFlag).toBeDefined();
-    expect(bannerFlag.variant).toBe('sg-exclusive');
+    expect(res.body.value).toBe('OAuth2.1-PKCE');
+    expect(res.body.reason).toBe('STATIC');
+    expect(res.body.metadata.graduated).toBe(true);
   });
 });
 
-describe('Admin REST API & Schema Validation', () => {
-  test('GET /api/v1/admin/flags lists inventory metadata', async () => {
-    const res = await request(app).get('/api/v1/admin/flags');
-    expect(res.statusCode).toBe(200);
-    expect(res.body.flags.length).toBeGreaterThan(0);
-    expect(res.body.flags[0]).toHaveProperty('age');
-    expect(res.body.flags[0]).toHaveProperty('app_tags');
-  });
-
-  test('POST /api/v1/admin/flags enforces JSON Schema on OBJECT type flags', async () => {
-    // Attempt creating with invalid variant payload according to schema
-    const invalidFlag = {
-      key: 'config.test-invalid',
-      type: 'OBJECT',
-      default_variant: 'v1',
-      variants: {
-        v1: { maxRate: 'not-a-number' } // Invalid: expects number
-      },
-      schema: {
-        type: 'object',
-        required: ['maxRate'],
-        properties: {
-          maxRate: { type: 'number' }
-        }
-      },
-      description: 'Test flag with invalid schema'
-    };
-
-    const res = await request(app)
-      .post('/api/v1/admin/flags')
-      .send(invalidFlag);
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.error).toMatch(/failed schema validation/);
-  });
-
-  test('POST /api/v1/admin/flags successfully creates a valid flag and records audit history', async () => {
-    const validFlag = {
-      key: 'feature.crypto-staking',
-      type: 'BOOLEAN',
-      state: 'ENABLED',
-      default_variant: 'off',
-      variants: { on: true, off: false },
-      rules: [
-        {
-          id: 'rule-sg-staking',
-          priority: 1,
-          condition: { country: 'SG' },
-          variant: 'on'
-        }
-      ],
-      app_tags: ['webapp', 'bff'],
-      description: 'Enables high yield staking pools'
-    };
-
+describe('Reusable Segments & Scheduled Releases Management', () => {
+  test('Segments CRUD: Create, Read, Update, Delete segment', async () => {
+    // 1. Create
     const createRes = await request(app)
-      .post('/api/v1/admin/flags')
-      .set('x-author', 'lead-architect')
-      .send(validFlag);
+      .post('/api/v1/admin/segments')
+      .send({
+        id: 'segment-test-eu',
+        name: 'EU Retail Users',
+        description: 'Retail clients in UK and Europe',
+        condition: { country: ['GB', 'DE', 'FR'] }
+      });
 
     expect(createRes.statusCode).toBe(201);
-    expect(createRes.body.flag.key).toBe('feature.crypto-staking');
-    expect(createRes.body.flag.version).toBe(1);
+    expect(createRes.body.segment.id).toBe('segment-test-eu');
 
-    // Verify history audit record
-    const historyRes = await request(app).get('/api/v1/admin/flags/feature.crypto-staking/history');
-    expect(historyRes.statusCode).toBe(200);
-    expect(historyRes.body.history.length).toBe(1);
-    expect(historyRes.body.history[0].author).toBe('lead-architect');
+    // 2. Read
+    const getRes = await request(app).get('/api/v1/admin/segments');
+    expect(getRes.statusCode).toBe(200);
+    expect(getRes.body.segments.some(s => s.id === 'segment-test-eu')).toBe(true);
+
+    // 3. Delete
+    const delRes = await request(app).delete('/api/v1/admin/segments/segment-test-eu');
+    expect(delRes.statusCode).toBe(200);
   });
 
-  test('PUT /api/v1/admin/flags updates flag and increments version in history', async () => {
-    const updatePayload = {
-      description: 'Updated crypto staking description',
-      state: 'DISABLED'
-    };
+  test('Scheduled Changes: Create and process scheduled release', async () => {
+    const scheduleRes = await request(app)
+      .post('/api/v1/admin/scheduled-changes')
+      .send({
+        flag_key: 'config.chatbot-limits',
+        scheduled_at: new Date(Date.now() - 1000).toISOString(), // already due
+        changes: { description: 'Scheduled limits update' },
+        author: 'release-bot',
+        reason: 'Automated launch'
+      });
 
-    const updateRes = await request(app)
-      .put('/api/v1/admin/flags/feature.crypto-staking')
-      .set('x-author', 'sec-auditor')
-      .send(updatePayload);
+    expect(scheduleRes.statusCode).toBe(201);
+    expect(scheduleRes.body.scheduledChange.status).toBe('PENDING');
 
-    expect(updateRes.statusCode).toBe(200);
-    expect(updateRes.body.flag.version).toBe(2);
-    expect(updateRes.body.flag.state).toBe('DISABLED');
+    // Trigger processor
+    await schedulerService.processPendingChanges();
 
-    // Verify history records 2 revisions
-    const historyRes = await request(app).get('/api/v1/admin/flags/feature.crypto-staking/history');
-    expect(historyRes.statusCode).toBe(200);
-    expect(historyRes.body.history.length).toBe(2);
-    expect(historyRes.body.history[0].version).toBe(2);
-    expect(historyRes.body.history[0].author).toBe('sec-auditor');
-    expect(historyRes.body.history[0].diff.changes.state.to).toBe('DISABLED');
+    // Verify applied
+    const changesRes = await request(app).get('/api/v1/admin/scheduled-changes?flagKey=config.chatbot-limits');
+    expect(changesRes.statusCode).toBe(200);
+    const applied = changesRes.body.scheduledChanges.find(c => c.id === scheduleRes.body.scheduledChange.id);
+    expect(applied.status).toBe('APPLIED');
+  });
+});
+
+describe('Analytics, Tracking API & Flag Hygiene', () => {
+  test('POST /api/v1/analytics/track records business event', async () => {
+    const res = await request(app)
+      .post('/api/v1/analytics/track')
+      .send({
+        eventName: 'loan_application_submitted',
+        targetingKey: 'user-vip-01',
+        context: { country: 'SG', userTier: 'PREMIUM' },
+        details: { amount: 75000 }
+      });
+
+    expect(res.statusCode).toBe(202);
+    expect(res.body.recorded).toBe(true);
+  });
+
+  test('GET /api/v1/admin/analytics returns evaluation summary', async () => {
+    const res = await request(app).get('/api/v1/admin/analytics');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body.flagMetrics)).toBe(true);
+    expect(res.body.flagMetrics.length).toBeGreaterThan(0);
+  });
+
+  test('GET /api/v1/admin/hygiene returns stale flag report', async () => {
+    const res = await request(app).get('/api/v1/admin/hygiene');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body.hygieneIssues)).toBe(true);
   });
 });

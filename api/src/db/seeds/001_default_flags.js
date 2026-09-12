@@ -4,32 +4,74 @@
  */
 exports.seed = async function(knex) {
   // Clear existing
+  await knex('tracking_events').del();
+  await knex('evaluation_metrics').del();
+  await knex('scheduled_changes').del();
+  await knex('segments').del();
   await knex('flag_history').del();
   await knex('flags').del();
 
+  // 1. Seed Reusable Audience Segments
+  const sampleSegments = [
+    {
+      id: 'segment-apac-premier',
+      name: 'APAC Premier Wealth Clients',
+      description: 'High net worth clients located in Singapore, Philippines, and APAC hubs with Premier status',
+      condition: JSON.stringify({
+        country: ['SG', 'PH'],
+        userTier: 'PREMIUM'
+      })
+    },
+    {
+      id: 'segment-beta-cohort',
+      name: 'Internal Beta Testing Cohort',
+      description: 'Internal developers and product beta users testing experimental capabilities',
+      condition: JSON.stringify({
+        targetingKey: ['user-beta-01', 'user-beta-02', 'user-internal-test']
+      })
+    }
+  ];
+  await knex('segments').insert(sampleSegments);
+
+  // 2. Seed Flags with Prerequisites, Percentage Rollouts, and Lifecycle States
   const sampleFlags = [
     {
       key: 'feature.chatbot-gemini-ui',
       type: 'BOOLEAN',
       state: 'ENABLED',
+      lifecycle_state: 'ENABLED',
       default_variant: 'on',
       variants: JSON.stringify({
         on: true,
         off: false
       }),
+      prerequisites: JSON.stringify([]),
       rules: JSON.stringify([
         {
           id: 'rule-gemini-us-disabled',
           priority: 1,
-          description: 'Disable Gemini UI in US region temporarily for compliance review',
+          description: 'Temporarily disable Gemini UI in US region for compliance review',
           condition: { country: 'US' },
           variant: 'off'
         },
         {
-          id: 'rule-gemini-premium-enabled',
+          id: 'rule-gemini-beta-cohort',
           priority: 2,
-          description: 'Enable for all Premium users',
-          condition: { userTier: 'PREMIUM' },
+          description: 'Enable for Beta Cohort segment',
+          condition: { segmentId: 'segment-beta-cohort' },
+          variant: 'on'
+        },
+        {
+          id: 'rule-gemini-percentage-rollout',
+          priority: 3,
+          description: '50% Percentage Rollout for Standard tier users',
+          condition: { userTier: 'STANDARD' },
+          rollout: {
+            attribute: 'targetingKey',
+            percentage: 50,
+            variant: 'on',
+            fallbackVariant: 'off'
+          },
           variant: 'on'
         }
       ]),
@@ -42,17 +84,25 @@ exports.seed = async function(knex) {
       key: 'feature.advanced-financial-insights',
       type: 'BOOLEAN',
       state: 'ENABLED',
+      lifecycle_state: 'ENABLED',
       default_variant: 'off',
       variants: JSON.stringify({
         on: true,
         off: false
       }),
+      // Flag prerequisite: depends on chatbot-gemini-ui being 'on'
+      prerequisites: JSON.stringify([
+        {
+          flagKey: 'feature.chatbot-gemini-ui',
+          variant: 'on'
+        }
+      ]),
       rules: JSON.stringify([
         {
-          id: 'rule-sg-vip-access',
+          id: 'rule-apac-premier-segment',
           priority: 1,
-          description: 'Enable advanced wealth insights for Singapore Premium tier',
-          condition: { country: 'SG', userTier: 'PREMIUM' },
+          description: 'Enable advanced wealth insights for APAC Premier segment',
+          condition: { segmentId: 'segment-apac-premier' },
           variant: 'on'
         },
         {
@@ -65,13 +115,14 @@ exports.seed = async function(knex) {
       ]),
       schema: null,
       app_tags: JSON.stringify(['webapp', 'bff']),
-      description: 'Provides AI-powered predictive wealth modeling and cashflow forecast charts',
+      description: 'Provides AI-powered predictive wealth modeling and cashflow forecast charts (Requires Gemini UI)',
       version: 1
     },
     {
       key: 'config.chatbot-limits',
       type: 'OBJECT',
       state: 'ENABLED',
+      lifecycle_state: 'ENABLED',
       default_variant: 'standard',
       variants: JSON.stringify({
         standard: {
@@ -87,6 +138,7 @@ exports.seed = async function(knex) {
           allowedTools: ['balance_lookup', 'transaction_history', 'portfolio_simulation', 'instant_transfer']
         }
       }),
+      prerequisites: JSON.stringify([]),
       rules: JSON.stringify([
         {
           id: 'rule-premium-limits',
@@ -118,6 +170,7 @@ exports.seed = async function(knex) {
       key: 'config.banner-announcement',
       type: 'OBJECT',
       state: 'ENABLED',
+      lifecycle_state: 'ENABLED',
       default_variant: 'global-promo',
       variants: JSON.stringify({
         'global-promo': {
@@ -139,6 +192,7 @@ exports.seed = async function(knex) {
           cta: { label: 'System Status', link: '#status' }
         }
       }),
+      prerequisites: JSON.stringify([]),
       rules: JSON.stringify([
         {
           id: 'rule-sg-banner',
@@ -176,6 +230,35 @@ exports.seed = async function(knex) {
       app_tags: JSON.stringify(['webapp']),
       description: 'Dynamic contextual banner announcement with targeting rules per country',
       version: 1
+    },
+    {
+      key: 'feature.crypto-staking-pools',
+      type: 'BOOLEAN',
+      state: 'DISABLED',
+      lifecycle_state: 'DRAFT',
+      default_variant: 'off',
+      variants: JSON.stringify({ on: true, off: false }),
+      prerequisites: JSON.stringify([]),
+      rules: JSON.stringify([]),
+      schema: null,
+      app_tags: JSON.stringify(['webapp', 'bff']),
+      description: 'High-yield staking protocol integration (Currently in Draft specification)',
+      version: 1
+    },
+    {
+      key: 'config.legacy-auth-migration',
+      type: 'STRING',
+      state: 'ENABLED',
+      lifecycle_state: 'GRADUATED',
+      graduated_variant: 'v2-oauth',
+      default_variant: 'v2-oauth',
+      variants: JSON.stringify({ 'v1-basic': 'BasicAuth', 'v2-oauth': 'OAuth2.1-PKCE' }),
+      prerequisites: JSON.stringify([]),
+      rules: JSON.stringify([]),
+      schema: null,
+      app_tags: JSON.stringify(['api', 'bff']),
+      description: 'Completed migration to OAuth 2.1 authentication (Graduated feature / Permanent)',
+      version: 3
     }
   ];
 
@@ -184,12 +267,24 @@ exports.seed = async function(knex) {
   // Insert initial history entries
   const historyEntries = sampleFlags.map(flag => ({
     flag_key: flag.key,
-    version: 1,
+    version: flag.version,
     snapshot: JSON.stringify(flag),
     diff: JSON.stringify({ action: 'CREATED', initial_state: flag }),
     author: 'system-seed',
-    change_reason: 'Initial system seeding'
+    change_reason: 'TPO enhancement system seeding'
   }));
 
   await knex('flag_history').insert(historyEntries);
+
+  // Seed sample analytics data for demonstration
+  const today = new Date().toISOString().slice(0, 10);
+  await knex('evaluation_metrics').insert([
+    { flag_key: 'feature.chatbot-gemini-ui', variant: 'on', reason: 'TARGETING_MATCH', count: 1420, date_bucket: today },
+    { flag_key: 'feature.chatbot-gemini-ui', variant: 'off', reason: 'TARGETING_MATCH', count: 320, date_bucket: today },
+    { flag_key: 'feature.advanced-financial-insights', variant: 'on', reason: 'TARGETING_MATCH', count: 580, date_bucket: today },
+    { flag_key: 'feature.advanced-financial-insights', variant: 'off', reason: 'DEFAULT', count: 1160, date_bucket: today },
+    { flag_key: 'config.banner-announcement', variant: 'sg-exclusive', reason: 'TARGETING_MATCH', count: 890, date_bucket: today },
+    { flag_key: 'config.banner-announcement', variant: 'us-maintenance', reason: 'TARGETING_MATCH', count: 410, date_bucket: today },
+    { flag_key: 'config.banner-announcement', variant: 'global-promo', reason: 'DEFAULT', count: 440, date_bucket: today }
+  ]);
 };

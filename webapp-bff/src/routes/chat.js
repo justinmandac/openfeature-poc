@@ -1,25 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { client } = require('../openfeature/client');
+const { client, trackEvent } = require('../openfeature/client');
 
 /**
  * POST /api/chat
  * Handles financial assistant inquiries with dynamic Generative UI payloads governed by OpenFeature.
+ * Uses OpenFeature Transaction Context (AsyncLocalStorage) and emits track events.
  */
 router.post('/chat', async (req, res) => {
   try {
-    const { message = '', context = {} } = req.body;
+    const { message = '' } = req.body;
     const lower = message.toLowerCase().trim();
-
-    // 1. Evaluate OpenFeature Flags with Context
-    const evalContext = {
-      targetingKey: context.targetingKey || 'anonymous-user',
-      country: context.country || 'SG',
-      userTier: context.userTier || 'STANDARD',
-      appId: 'bff',
-      appGroup: 'financial-portal',
-      environment: process.env.NODE_ENV || 'development'
-    };
+    const evalContext = req.evalContext;
 
     // Safe Defaults
     const defaultGeminiUi = false;
@@ -31,18 +23,20 @@ router.post('/chat', async (req, res) => {
       allowedTools: ['balance_lookup']
     };
 
-    // Concurrent OpenFeature evaluations
+    // Ambient evaluations automatically picking up Transaction Context
     const [geminiUiEnabled, advancedInsightsEnabled, limitsConfig] = await Promise.all([
-      client.getBooleanValue('feature.chatbot-gemini-ui', defaultGeminiUi, evalContext),
-      client.getBooleanValue('feature.advanced-financial-insights', defaultAdvancedInsights, evalContext),
-      client.getObjectValue('config.chatbot-limits', defaultLimits, evalContext)
+      client.getBooleanValue('feature.chatbot-gemini-ui', defaultGeminiUi),
+      client.getBooleanValue('feature.advanced-financial-insights', defaultAdvancedInsights),
+      client.getObjectValue('config.chatbot-limits', defaultLimits)
     ]);
 
     // Construct response based on user intent and active feature flags
     let textResponse = '';
     let generativeUi = null;
+    let intentTracked = 'general_inquiry';
 
     if (lower.includes('portfolio') || lower.includes('asset') || lower.includes('holdings')) {
+      intentTracked = 'portfolio_breakdown_viewed';
       textResponse = 'Here is your current asset allocation breakdown across equities, fixed income, and cash reserves:';
       if (geminiUiEnabled) {
         generativeUi = {
@@ -59,6 +53,7 @@ router.post('/chat', async (req, res) => {
         textResponse += ' Total portfolio value is $110,000 (Equities: 41%, Fixed Income: 27%, Cash: 23%, Crypto: 9%).';
       }
     } else if (lower.includes('loan') || lower.includes('mortgage') || lower.includes('borrow')) {
+      intentTracked = 'loan_simulator_viewed';
       textResponse = 'I can help you calculate estimated monthly repayments for our Premier Personal Loan:';
       if (geminiUiEnabled) {
         generativeUi = {
@@ -76,6 +71,7 @@ router.post('/chat', async (req, res) => {
         textResponse += ' For a $50,000 loan over 36 months at 3.88% p.a., your estimated monthly repayment is $1,473.45.';
       }
     } else if (lower.includes('wealth') || lower.includes('insight') || lower.includes('projection') || lower.includes('forecast')) {
+      intentTracked = 'wealth_projection_viewed';
       if (advancedInsightsEnabled) {
         textResponse = '✨ Advanced AI Wealth Projection unlocked for your tier:';
         if (geminiUiEnabled) {
@@ -101,6 +97,7 @@ router.post('/chat', async (req, res) => {
         textResponse = 'Advanced wealth forecasting is available to Singapore Premier clients and beta participants. Would you like to check your upgrade eligibility?';
       }
     } else if (lower.includes('fx') || lower.includes('rate') || lower.includes('exchange')) {
+      intentTracked = 'fx_rates_viewed';
       textResponse = 'Here are the latest interbank FX exchange rates:';
       if (geminiUiEnabled) {
         generativeUi = {
@@ -117,6 +114,13 @@ router.post('/chat', async (req, res) => {
     } else {
       textResponse = `Hello! I am your AI Financial Assistant. You can ask me to "view portfolio breakdown", "simulate a loan quote", or "show wealth forecast". (Session limits: max ${limitsConfig.maxTokens} tokens, temp: ${limitsConfig.temperature})`;
     }
+
+    // OpenFeature Tracking API: track user conversion event
+    trackEvent(intentTracked, evalContext, {
+      messageLength: message.length,
+      geminiUiEnabled,
+      advancedInsightsEnabled
+    });
 
     return res.json({
       reply: textResponse,
