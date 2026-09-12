@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import SidebarRail from './components/SidebarRail';
+import InstitutionalHeader from './components/InstitutionalHeader';
 import FlagInventory from './components/FlagInventory';
-import FlagModal from './components/FlagModal';
+import InspectorPanel from './components/InspectorPanel';
+import FlagStudio from './components/FlagStudio';
 import HistoryModal from './components/HistoryModal';
+import ScheduledChangesModal from './components/ScheduledChangesModal';
+import SegmentsManager from './components/SegmentsManager';
+import HygieneReport from './components/HygieneReport';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 export default function App() {
   const rootEl = document.getElementById('admin-root');
@@ -11,17 +18,32 @@ export default function App() {
   const [flags, setFlags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sseConnected, setSseConnected] = useState(false);
+  const [activeTab, setActiveTab] = useState('FLAGS'); // FLAGS, SEGMENTS, SCHEDULED, HYGIENE, ANALYTICS
+  const [environment, setEnvironment] = useState('PROD-US-EAST');
+  const [selectedFlagKey, setSelectedFlagKey] = useState(null);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [togglingKey, setTogglingKey] = useState(null);
 
   // Modals state
   const [editingFlag, setEditingFlag] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [historyFlagKey, setHistoryFlagKey] = useState(null);
+  const [showScheduledModal, setShowScheduledModal] = useState(false);
 
   const fetchFlags = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${apiUrl}/api/v1/admin/flags`);
-      setFlags(res.data.flags || []);
+      const list = res.data.flags || [];
+      setFlags(list);
+
+      // Auto-select first flag if none selected yet
+      setSelectedFlagKey((prev) => {
+        if (prev && list.some((f) => f.key === prev)) {
+          return prev;
+        }
+        return list.length > 0 ? list[0].key : null;
+      });
     } catch (err) {
       console.error('Failed to fetch flags:', err);
     } finally {
@@ -29,7 +51,7 @@ export default function App() {
     }
   }, [apiUrl]);
 
-  // Initial fetch and SSE setup
+  // Initial fetch and SSE stream setup
   useEffect(() => {
     fetchFlags();
 
@@ -42,7 +64,7 @@ export default function App() {
       });
 
       eventSource.addEventListener('PROVIDER_CONFIGURATION_CHANGED', () => {
-        // Live auto-refresh when any flag is created/updated/deleted
+        // Reactive auto-refresh when any flag mutation occurs
         fetchFlags();
       });
 
@@ -64,39 +86,181 @@ export default function App() {
     };
   }, [apiUrl, fetchFlags]);
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Top Title & Subtitle */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Runtime Feature Flags & Configuration Inventory
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Centrally author, target, and monitor enterprise OpenFeature flags with JSON Schema validation and revision auditing.
-          </p>
-        </div>
-      </div>
+  // Safe State Toggle with Enterprise Bank Guardrails
+  const handleToggleState = async (flag) => {
+    if (flag.lifecycle_state === 'GRADUATED') {
+      alert(`Flag "${flag.key}" is GRADUATED (frozen permanent feature).`);
+      return;
+    }
 
-      {/* Main Inventory Component */}
-      <FlagInventory
-        flags={flags}
-        loading={loading}
-        apiUrl={apiUrl}
+    const isProd = environment.startsWith('PROD');
+    const newState = flag.state === 'ENABLED' ? 'DISABLED' : 'ENABLED';
+
+    if (isProd) {
+      const confirmAction = window.confirm(
+        `[SECURITY GUARDRAIL] You are about to toggle "${flag.key}" to ${newState} in ${environment}.\n\nThis will trigger immediate OFREP cache invalidation across all connected banking nodes.\n\nProceed with change?`
+      );
+      if (!confirmAction) return;
+    }
+
+    try {
+      setTogglingKey(flag.key);
+      await axios.patch(
+        `${apiUrl}/api/v1/admin/flags/${encodeURIComponent(flag.key)}/state`,
+        { state: newState },
+        { headers: { 'x-author': 'admin-control-center' } }
+      );
+      await fetchFlags();
+    } catch (err) {
+      alert(`Failed to toggle flag state: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setTogglingKey(null);
+    }
+  };
+
+  // Flag Deletion
+  const handleDeleteFlag = async (flag) => {
+    const isProd = environment.startsWith('PROD');
+    const warning = isProd
+      ? `[CRITICAL COMPLIANCE WARNING] Deleting flag "${flag.key}" from ${environment} requires dual-authorization sign-off. Are you sure?`
+      : `Are you sure you want to delete flag "${flag.key}"? This will be recorded in the audit log.`;
+
+    if (!window.confirm(warning)) return;
+
+    try {
+      await axios.delete(
+        `${apiUrl}/api/v1/admin/flags/${encodeURIComponent(flag.key)}?author=admin-control-center&reason=Deleted from FlagOps Console`
+      );
+      if (selectedFlagKey === flag.key) {
+        setSelectedFlagKey(null);
+      }
+      fetchFlags();
+    } catch (err) {
+      alert(`Failed to delete flag: ${err.response?.data?.error || err.message}`);
+    }
+  };
+
+  // Active selected flag object
+  const selectedFlag = flags.find((f) => f.key === selectedFlagKey) || null;
+
+  return (
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#070b14] text-slate-100 antialiased font-sans">
+      {/* Top Institutional Header */}
+      <InstitutionalHeader
+        flagsCount={flags.length}
         sseConnected={sseConnected}
+        environment={environment}
         onRefresh={fetchFlags}
         onOpenCreate={() => setIsCreating(true)}
-        onOpenEdit={(flag) => setEditingFlag(flag)}
-        onOpenHistory={(key) => setHistoryFlagKey(key)}
+        onOpenScheduledModal={() => setShowScheduledModal(true)}
       />
 
-      {/* Create / Edit Modal */}
+      {/* Main 3-Column Cockpit Body */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Left Column: Navigation Rail */}
+        <SidebarRail
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            if (tab !== 'FLAGS') {
+              setIsInspectorOpen(false);
+            } else {
+              setIsInspectorOpen(true);
+            }
+          }}
+          flagsCount={flags.length}
+          environment={environment}
+          onEnvironmentChange={setEnvironment}
+          sseConnected={sseConnected}
+        />
+
+        {/* Center Column: Operations Workbench */}
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          {activeTab === 'FLAGS' && (
+            <FlagInventory
+              flags={flags}
+              loading={loading}
+              selectedFlagKey={selectedFlagKey}
+              onSelectFlag={(key) => {
+                setSelectedFlagKey(key);
+                setIsInspectorOpen(true);
+              }}
+              onToggleState={handleToggleState}
+              onDelete={handleDeleteFlag}
+              onOpenEdit={(flag) => setEditingFlag(flag)}
+              onOpenHistory={(key) => setHistoryFlagKey(key)}
+              togglingKey={togglingKey}
+            />
+          )}
+
+          {activeTab === 'SEGMENTS' && (
+            <div className="p-6 flex-1 overflow-y-auto">
+              <SegmentsManager apiUrl={apiUrl} />
+            </div>
+          )}
+
+          {activeTab === 'SCHEDULED' && (
+            <div className="p-6 flex-1 overflow-y-auto">
+              <div className="p-8 rounded-xl bg-[#0c1322] border border-[#16223b] text-center space-y-4 max-w-2xl mx-auto">
+                <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mx-auto">
+                  <span className="text-xl">⏱️</span>
+                </div>
+                <h3 className="text-lg font-bold text-white">Scheduled Release Management Queue</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Stage future flag state transitions, canary rollout increments, and configuration updates for regulatory go-live dates or scheduled maintenance windows.
+                </p>
+                <button
+                  onClick={() => setShowScheduledModal(true)}
+                  className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs inline-flex items-center space-x-2 shadow-lg shadow-teal-950 transition-all cursor-pointer"
+                >
+                  <span>Open Active Scheduled Releases</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'HYGIENE' && (
+            <div className="p-6 flex-1 overflow-y-auto">
+              <HygieneReport
+                apiUrl={apiUrl}
+                onOpenEdit={(flag) => {
+                  setActiveTab('FLAGS');
+                  setEditingFlag(flag);
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === 'ANALYTICS' && (
+            <div className="p-6 flex-1 overflow-y-auto">
+              <AnalyticsDashboard apiUrl={apiUrl} />
+            </div>
+          )}
+        </main>
+
+        {/* Right Column: Docked Context Inspector (Active on FLAGS tab) */}
+        {activeTab === 'FLAGS' && isInspectorOpen && (
+          <InspectorPanel
+            flag={selectedFlag}
+            apiUrl={apiUrl}
+            allFlags={flags}
+            onClose={() => setIsInspectorOpen(false)}
+            onOpenEdit={(flag) => setEditingFlag(flag)}
+            onOpenHistory={(key) => setHistoryFlagKey(key)}
+            onToggleState={handleToggleState}
+            isToggling={togglingKey === selectedFlag?.key}
+          />
+        )}
+      </div>
+
+      {/* Create / Edit Studio */}
       {(isCreating || editingFlag) && (
-        <FlagModal
+        <FlagStudio
           flag={editingFlag}
           isEditing={!!editingFlag}
           apiUrl={apiUrl}
           allFlags={flags}
+          environment={environment}
           onClose={() => {
             setIsCreating(false);
             setEditingFlag(null);
@@ -115,6 +279,15 @@ export default function App() {
           flagKey={historyFlagKey}
           apiUrl={apiUrl}
           onClose={() => setHistoryFlagKey(null)}
+        />
+      )}
+
+      {/* Scheduled Changes Modal */}
+      {showScheduledModal && (
+        <ScheduledChangesModal
+          apiUrl={apiUrl}
+          flags={flags}
+          onClose={() => setShowScheduledModal(false)}
         />
       )}
     </div>
