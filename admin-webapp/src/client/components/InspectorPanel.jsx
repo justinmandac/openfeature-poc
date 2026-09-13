@@ -24,6 +24,25 @@ import {
 import axios from 'axios';
 import EvaluationPlayground from './EvaluationPlayground';
 
+function formatConditionSummary(condition) {
+  if (!condition || typeof condition !== 'object') return 'All contexts';
+  const parts = [];
+  for (const [key, val] of Object.entries(condition)) {
+    if (key === 'segmentId' || key === 'segment') {
+      parts.push(`Segment is "${val}"`);
+    } else if (Array.isArray(val)) {
+      parts.push(`${key} in [${val.join(', ')}]`);
+    } else if (typeof val === 'object' && val !== null) {
+      if (val.in) parts.push(`${key} in [${val.in.join(', ')}]`);
+      else if (val.notIn) parts.push(`${key} not in [${val.notIn.join(', ')}]`);
+      else parts.push(`${key} matches ${JSON.stringify(val)}`);
+    } else {
+      parts.push(`${key} == "${val}"`);
+    }
+  }
+  return parts.length > 0 ? parts.join(' AND ') : 'All contexts';
+}
+
 export default function InspectorPanel({
   flag,
   apiUrl,
@@ -333,8 +352,14 @@ export default function InspectorPanel({
                   </div>
 
                   {/* Conditions */}
-                  <div className="p-2 rounded bg-zinc-900 border border-zinc-800 font-mono text-[11px] text-zinc-300">
-                    <pre className="whitespace-pre-wrap">{JSON.stringify(rule.condition, null, 2)}</pre>
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] text-zinc-300 font-medium bg-zinc-950 px-2.5 py-1 rounded border border-zinc-800 flex items-center space-x-1.5">
+                      <span className="text-[10px] font-mono uppercase text-blue-400 bg-blue-950/60 px-1 py-0.2 rounded border border-blue-800/80">IF</span>
+                      <span className="truncate">{formatConditionSummary(rule.condition)}</span>
+                    </div>
+                    <div className="p-2 rounded bg-zinc-900 border border-zinc-800 font-mono text-[10px] text-zinc-400">
+                      <pre className="whitespace-pre-wrap">{JSON.stringify(rule.condition, null, 2)}</pre>
+                    </div>
                   </div>
 
                   {/* Serve Variant & Rollout */}
