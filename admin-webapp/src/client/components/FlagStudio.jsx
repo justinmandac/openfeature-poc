@@ -82,7 +82,6 @@ export default function FlagStudio({
   const [validationError, setValidationError] = useState(null);
   const [schemaTestResult, setSchemaTestResult] = useState(null);
 
-  // Dry-Run Sandbox Context State
   const [testContextJson, setTestContextJson] = useState(
     JSON.stringify(
       {
@@ -97,6 +96,8 @@ export default function FlagStudio({
     )
   );
   const [dryRunResult, setDryRunResult] = useState(null);
+  const [batchImpactResult, setBatchImpactResult] = useState(null);
+  const [simulatingBatch, setSimulatingBatch] = useState(false);
 
   // Load Segments
   useEffect(() => {
@@ -328,6 +329,53 @@ export default function FlagStudio({
       setDryRunResult({
         error: err.message
       });
+    }
+  };
+
+  // Run Server-Side Batch What-If Impact Simulation
+  const handleRunBatchImpactSimulation = async () => {
+    try {
+      setSimulatingBatch(true);
+      let parsedVariants = {};
+      try {
+        parsedVariants = JSON.parse(variantsJson);
+      } catch (e) {
+        alert('Invalid JSON in Variants editor: ' + e.message);
+        return;
+      }
+
+      let parsedSchema = null;
+      if (schemaJson.trim()) {
+        try {
+          parsedSchema = JSON.parse(schemaJson);
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      const proposedFlag = {
+        key: key || 'draft.simulated-flag',
+        type,
+        state: lifecycleState === 'ENABLED' || lifecycleState === 'GRADUATED' ? 'ENABLED' : 'DISABLED',
+        lifecycle_state: lifecycleState,
+        default_variant: defaultVariant,
+        variants: parsedVariants,
+        rules,
+        prerequisites,
+        schema: parsedSchema,
+        app_tags: appTags,
+        description
+      };
+
+      const res = await axios.post(`${apiUrl}/api/v1/admin/simulate-impact`, {
+        proposedFlag
+      });
+
+      setBatchImpactResult(res.data);
+    } catch (err) {
+      alert(`Blast Radius Simulation Failed: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setSimulatingBatch(false);
     }
   };
 
@@ -1165,21 +1213,119 @@ export default function FlagStudio({
               )}
             </div>
 
-            {/* 3. Estimated Financial Blast Radius */}
-            <div className="p-3.5 rounded-xl bg-[#111a2e] border border-[#1b2a47] space-y-2">
+            {/* 3. Server-Side Automated Blast Radius & Dependency Impact */}
+            <div className="p-3.5 rounded-xl bg-[#111a2e] border border-[#1b2a47] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-300 uppercase">Estimated Blast Radius</span>
-                <span className="font-mono font-bold text-emerald-400">LOW (&lt; 5%)</span>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-300 uppercase block">
+                    Blast Radius & Dependency Impact
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Stateless multi-cohort simulation
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRunBatchImpactSimulation}
+                  disabled={simulatingBatch}
+                  className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-semibold text-[10px] flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {simulatingBatch ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>Simulating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="w-3 h-3" />
+                      <span>Analyze Impact</span>
+                    </>
+                  )}
+                </button>
               </div>
 
-              <div className="w-full bg-[#070b14] h-2 rounded-full overflow-hidden border border-[#16223b]">
-                <div className="h-full bg-teal-500" style={{ width: '15%' }} />
-              </div>
+              {batchImpactResult ? (
+                <div className="space-y-2.5 pt-1">
+                  {/* Blast Radius Percentage & Risk */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-300">
+                      Calculated Blast Radius: <strong className="font-mono text-white">{batchImpactResult.blastRadiusPercentage}%</strong>
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                        batchImpactResult.riskRating === 'HIGH'
+                          ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                          : batchImpactResult.riskRating === 'MEDIUM'
+                          ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                      }`}
+                    >
+                      {batchImpactResult.riskRating} RISK
+                    </span>
+                  </div>
 
-              <div className="text-[10px] text-slate-400">
-                Covers scopes: <strong className="text-slate-200">{appTags.join(', ')}</strong>.
-                Targeted rules contain explicit audience filters limiting exposure.
-              </div>
+                  {/* Visual Progress Bar */}
+                  <div className="w-full bg-[#070b14] h-2 rounded-full overflow-hidden border border-[#16223b]">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        batchImpactResult.riskRating === 'HIGH'
+                          ? 'bg-rose-500'
+                          : batchImpactResult.riskRating === 'MEDIUM'
+                          ? 'bg-amber-500'
+                          : 'bg-teal-500'
+                      }`}
+                      style={{ width: `${Math.max(batchImpactResult.blastRadiusPercentage, 5)}%` }}
+                    />
+                  </div>
+
+                  <div className="text-[10px] text-slate-400 font-mono">
+                    {batchImpactResult.contextsWithChanges} of {batchImpactResult.totalContextsEvaluated} synthetic banking cohorts affected.
+                  </div>
+
+                  {/* Prerequisite Failure Alert */}
+                  {batchImpactResult.prerequisiteFailuresCount > 0 && (
+                    <div className="p-2.5 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-[10px] space-y-1">
+                      <div className="font-bold flex items-center space-x-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        <span>Cascading Prerequisite Failure Detected</span>
+                      </div>
+                      <div>
+                        {batchImpactResult.prerequisiteFailuresCount} cohort(s) in downstream flags failed prerequisites due to this draft change!
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Downstream Impacted Flags List */}
+                  {batchImpactResult.downstreamImpacts.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-[#16223b]">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Downstream Impacted Flags ({batchImpactResult.downstreamImpacts.length})
+                      </span>
+                      {batchImpactResult.downstreamImpacts.map((dep) => (
+                        <div
+                          key={dep.flagKey}
+                          className="p-2 rounded bg-[#070b14] border border-[#16223b] font-mono text-[10px] space-y-0.5"
+                        >
+                          <div className="flex items-center justify-between text-slate-200 font-bold">
+                            <span className="truncate">{dep.flagKey}</span>
+                            <span className="text-amber-400 ml-2">{dep.impactedContexts} cohorts</span>
+                          </div>
+                          {dep.prerequisiteFailures > 0 && (
+                            <div className="text-rose-400">
+                              ⚠️ {dep.prerequisiteFailures} cohorts trigger PREREQUISITE_FAILED
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-[10px] text-slate-400 leading-relaxed">
+                  Click <strong className="text-teal-400">Analyze Impact</strong> to simulate this proposed flag across 30+ synthetic banking cohorts (SG, HK, US, PH) and verify that no downstream dependent flags break.
+                </div>
+              )}
             </div>
           </div>
         </aside>

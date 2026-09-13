@@ -357,6 +357,154 @@ class FlagService {
     await db('segments').where({ id }).del();
     return { success: true, id };
   }
+
+  /**
+   * Builds an inverted dependency graph mapping each upstream flag to its direct dependents.
+   * Map: upstreamFlagKey -> [ { dependentKey, requiredVariant, type, appTags, description } ]
+   */
+  async getInvertedDependencyGraph() {
+    const flags = await this.getAllFlags();
+    const invertedMap = {};
+
+    for (const flag of flags) {
+      for (const prereq of flag.prerequisites || []) {
+        if (!invertedMap[prereq.flagKey]) {
+          invertedMap[prereq.flagKey] = [];
+        }
+        invertedMap[prereq.flagKey].push({
+          dependentKey: flag.key,
+          requiredVariant: prereq.variant,
+          type: flag.type,
+          state: flag.state,
+          lifecycleState: flag.lifecycle_state,
+          appTags: flag.app_tags,
+          description: flag.description
+        });
+      }
+    }
+
+    return invertedMap;
+  }
+
+  /**
+   * Traverses all direct and transitive downstream dependents for a given flag.
+   */
+  async getDownstreamDependents(flagKey) {
+    const flags = await this.getAllFlags();
+    const flagsByKey = {};
+    for (const f of flags) {
+      flagsByKey[f.key] = f;
+    }
+
+    const invertedMap = {};
+    for (const f of flags) {
+      for (const prereq of f.prerequisites || []) {
+        if (!invertedMap[prereq.flagKey]) {
+          invertedMap[prereq.flagKey] = [];
+        }
+        invertedMap[prereq.flagKey].push({
+          flagKey: f.key,
+          requiredVariant: prereq.variant
+        });
+      }
+    }
+
+    const visited = new Set();
+    const dependents = [];
+
+    function traverse(currentKey, depth = 1) {
+      const direct = invertedMap[currentKey] || [];
+      for (const item of direct) {
+        if (!visited.has(item.flagKey)) {
+          visited.add(item.flagKey);
+          const flagObj = flagsByKey[item.flagKey];
+          dependents.push({
+            flagKey: item.flagKey,
+            depth,
+            requiredVariant: item.requiredVariant,
+            type: flagObj?.type,
+            lifecycleState: flagObj?.lifecycle_state,
+            appTags: flagObj?.app_tags || [],
+            description: flagObj?.description || ''
+          });
+          traverse(item.flagKey, depth + 1);
+        }
+      }
+    }
+
+    traverse(flagKey, 1);
+    return dependents;
+  }
+
+  /**
+   * Traverses all direct and transitive upstream prerequisites required by a given flag.
+   */
+  async getUpstreamPrerequisites(flagKey) {
+    const flag = await this.getFlagByKey(flagKey);
+    if (!flag) return [];
+
+    const flags = await this.getAllFlags();
+    const flagsByKey = {};
+    for (const f of flags) {
+      flagsByKey[f.key] = f;
+    }
+
+    const visited = new Set();
+    const prerequisitesList = [];
+
+    function traverse(currentFlag, depth = 1) {
+      for (const prereq of currentFlag.prerequisites || []) {
+        if (!visited.has(prereq.flagKey)) {
+          visited.add(prereq.flagKey);
+          const upstreamFlag = flagsByKey[prereq.flagKey];
+          prerequisitesList.push({
+            flagKey: prereq.flagKey,
+            depth,
+            requiredVariant: prereq.variant,
+            currentVariant: upstreamFlag?.default_variant,
+            lifecycleState: upstreamFlag?.lifecycle_state,
+            description: upstreamFlag?.description || ''
+          });
+          if (upstreamFlag) {
+            traverse(upstreamFlag, depth + 1);
+          }
+        }
+      }
+    }
+
+    traverse(flag, 1);
+    return prerequisitesList;
+  }
+
+  /**
+   * Returns complete dependency graph with nodes and edges across the entire catalog.
+   */
+  async getFullDependencyGraph() {
+    const flags = await this.getAllFlags();
+    const nodes = [];
+    const edges = [];
+
+    for (const flag of flags) {
+      nodes.push({
+        id: flag.key,
+        label: flag.key,
+        type: flag.type,
+        lifecycleState: flag.lifecycle_state,
+        appTags: flag.app_tags,
+        defaultVariant: flag.default_variant
+      });
+
+      for (const prereq of flag.prerequisites || []) {
+        edges.push({
+          source: prereq.flagKey,
+          target: flag.key,
+          requiredVariant: prereq.variant
+        });
+      }
+    }
+
+    return { nodes, edges };
+  }
 }
 
 module.exports = new FlagService();

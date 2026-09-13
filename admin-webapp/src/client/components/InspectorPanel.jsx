@@ -38,6 +38,17 @@ export default function InspectorPanel({
   const [copiedKey, setCopiedKey] = useState(false);
   const [recentHistory, setRecentHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [dependentsData, setDependentsData] = useState(null);
+
+  // Fetch downstream dependents
+  useEffect(() => {
+    if (flag) {
+      axios
+        .get(`${apiUrl}/api/v1/admin/flags/${encodeURIComponent(flag.key)}/dependents`)
+        .then((res) => setDependentsData(res.data))
+        .catch((err) => console.warn('Could not fetch dependents:', err));
+    }
+  }, [flag, apiUrl]);
 
   // Copy flag key
   const handleCopyKey = () => {
@@ -257,7 +268,7 @@ export default function InspectorPanel({
               <div className="p-3 rounded-lg bg-[#090f1c] border border-blue-900/60 space-y-2">
                 <div className="flex items-center space-x-1.5 text-blue-300 text-xs font-semibold">
                   <Link2 className="w-3.5 h-3.5" />
-                  <span>Prerequisite Flags ({prerequisites.length})</span>
+                  <span>Upstream Prerequisites ({prerequisites.length})</span>
                 </div>
                 <div className="space-y-1.5">
                   {prerequisites.map((p, i) => (
@@ -267,6 +278,27 @@ export default function InspectorPanel({
                     >
                       <span className="truncate">{p.flagKey}</span>
                       <span className="text-teal-400 font-bold ml-2">== {p.variant}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Downstream Dependents */}
+            {dependentsData?.downstream && dependentsData.downstream.length > 0 && (
+              <div className="p-3 rounded-lg bg-[#090f1c] border border-amber-900/60 space-y-2">
+                <div className="flex items-center space-x-1.5 text-amber-300 text-xs font-semibold">
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span>Downstream Dependents ({dependentsData.downstream.length})</span>
+                </div>
+                <div className="space-y-1.5">
+                  {dependentsData.downstream.map((d, i) => (
+                    <div
+                      key={i}
+                      className="p-1.5 rounded bg-[#111a2e] border border-[#1b2a47] font-mono text-[10px] flex items-center justify-between text-slate-300"
+                    >
+                      <span className="truncate">{d.flagKey}</span>
+                      <span className="text-amber-400 font-bold ml-2">requires == {d.requiredVariant}</span>
                     </div>
                   ))}
                 </div>

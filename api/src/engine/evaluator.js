@@ -215,7 +215,168 @@ function matchesCondition(condition, context, segmentsMap = {}) {
   return true;
 }
 
+/**
+ * Generates a representative synthetic matrix of banking evaluation contexts.
+ */
+function generateSyntheticContexts() {
+  const countries = ['SG', 'HK', 'PH', 'US', 'GB'];
+  const userTiers = ['VIP', 'PREMIUM', 'STANDARD'];
+  const businessUnits = ['Wealth Management', 'Retail Banking', 'Treasury & Markets'];
+  const appIds = ['webapp', 'bff'];
+
+  const contexts = [];
+  let userIndex = 1;
+
+  for (const country of countries) {
+    for (const userTier of userTiers) {
+      for (const businessUnit of businessUnits) {
+        const appId = appIds[userIndex % appIds.length];
+        contexts.push({
+          targetingKey: `user-${country.toLowerCase()}-${userTier.toLowerCase()}-${userIndex}`,
+          country,
+          userTier,
+          businessUnit,
+          appId,
+          environment: 'PROD-US-EAST'
+        });
+        userIndex++;
+      }
+    }
+  }
+
+  return contexts;
+}
+
+/**
+ * Performs a stateless batch simulation comparing the current flag catalog
+ * against a proposed hypothetical flag mutation across a matrix of contexts.
+ *
+ * @param {Object} proposedFlag The draft/modified flag object.
+ * @param {Array} testContexts Optional array of contexts. If omitted, uses standard synthetic matrix.
+ * @param {Object} options { allFlagsMap, segmentsMap }
+ * @returns {Object} Comprehensive differential impact analysis.
+ */
+function simulateBatchImpact(proposedFlag, testContexts = null, options = {}) {
+  const { allFlagsMap = {}, segmentsMap = {} } = options;
+  const contexts = (Array.isArray(testContexts) && testContexts.length > 0)
+    ? testContexts
+    : generateSyntheticContexts();
+
+  const targetKey = proposedFlag.key;
+
+  // Build baseline and hypothetical catalogs
+  const baselineCatalog = { ...allFlagsMap };
+  const hypotheticalCatalog = { ...allFlagsMap, [targetKey]: proposedFlag };
+
+  let contextsChangedCount = 0;
+  const directVariantTransitions = {};
+  const downstreamImpactsMap = {}; // dependentKey -> { flagKey, count, reasons, brokenContexts: [] }
+  let prerequisiteFailuresCount = 0;
+
+  for (const ctx of contexts) {
+    let contextExperiencedChange = false;
+
+    // 1. Evaluate target flag in baseline vs. hypothetical
+    const baselineEval = baselineCatalog[targetKey]
+      ? evaluateFlag(baselineCatalog[targetKey], ctx, { allFlagsMap: baselineCatalog, segmentsMap })
+      : null;
+
+    const hypotheticalEval = evaluateFlag(proposedFlag, ctx, {
+      allFlagsMap: hypotheticalCatalog,
+      segmentsMap
+    });
+
+    const isDirectChange = !baselineEval ||
+      baselineEval.variant !== hypotheticalEval.variant ||
+      baselineEval.reason !== hypotheticalEval.reason;
+
+    if (isDirectChange) {
+      contextExperiencedChange = true;
+      const transitionKey = `${baselineEval ? baselineEval.variant : 'NONE'} ➔ ${hypotheticalEval.variant}`;
+      directVariantTransitions[transitionKey] = (directVariantTransitions[transitionKey] || 0) + 1;
+    }
+
+    // 2. Evaluate all other flags to detect downstream ripples / prerequisite failures
+    for (const [flagKey, flagObj] of Object.entries(hypotheticalCatalog)) {
+      if (flagKey === targetKey || !flagObj) continue;
+
+      const baseDepEval = baselineCatalog[flagKey]
+        ? evaluateFlag(baselineCatalog[flagKey], ctx, { allFlagsMap: baselineCatalog, segmentsMap })
+        : null;
+
+      const hypoDepEval = evaluateFlag(flagObj, ctx, {
+        allFlagsMap: hypotheticalCatalog,
+        segmentsMap
+      });
+
+      const depChanged = baseDepEval && (
+        baseDepEval.variant !== hypoDepEval.variant ||
+        baseDepEval.reason !== hypoDepEval.reason
+      );
+
+      if (depChanged) {
+        contextExperiencedChange = true;
+        if (!downstreamImpactsMap[flagKey]) {
+          downstreamImpactsMap[flagKey] = {
+            flagKey,
+            impactedContexts: 0,
+            prerequisiteFailures: 0,
+            sampleTransitions: []
+          };
+        }
+
+        downstreamImpactsMap[flagKey].impactedContexts++;
+
+        if (hypoDepEval.reason === 'PREREQUISITE_FAILED') {
+          downstreamImpactsMap[flagKey].prerequisiteFailures++;
+          prerequisiteFailuresCount++;
+        }
+
+        if (downstreamImpactsMap[flagKey].sampleTransitions.length < 3) {
+          downstreamImpactsMap[flagKey].sampleTransitions.push({
+            context: ctx.targetingKey,
+            country: ctx.country,
+            from: `${baseDepEval.variant} (${baseDepEval.reason})`,
+            to: `${hypoDepEval.variant} (${hypoDepEval.reason})`
+          });
+        }
+      }
+    }
+
+    if (contextExperiencedChange) {
+      contextsChangedCount++;
+    }
+  }
+
+  const totalContexts = contexts.length;
+  const blastRadiusPercentage = totalContexts > 0
+    ? parseFloat(((contextsChangedCount / totalContexts) * 100).toFixed(1))
+    : 0;
+
+  // Determine Risk Rating
+  let riskRating = 'LOW';
+  if (prerequisiteFailuresCount > 0 || blastRadiusPercentage >= 50) {
+    riskRating = 'HIGH';
+  } else if (blastRadiusPercentage >= 20 || Object.keys(downstreamImpactsMap).length > 0) {
+    riskRating = 'MEDIUM';
+  }
+
+  return {
+    targetFlagKey: targetKey,
+    totalContextsEvaluated: totalContexts,
+    contextsWithChanges: contextsChangedCount,
+    blastRadiusPercentage,
+    riskRating,
+    directVariantTransitions,
+    downstreamImpacts: Object.values(downstreamImpactsMap),
+    prerequisiteFailuresCount,
+    simulatedAt: new Date().toISOString()
+  };
+}
+
 module.exports = {
   evaluateFlag,
-  matchesCondition
+  matchesCondition,
+  generateSyntheticContexts,
+  simulateBatchImpact
 };

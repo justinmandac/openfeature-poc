@@ -3,6 +3,7 @@ const router = express.Router();
 const flagService = require('../services/flagService');
 const schedulerService = require('../services/schedulerService');
 const analyticsService = require('../services/analyticsService');
+const { simulateBatchImpact } = require('../engine/evaluator');
 const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
 
@@ -260,6 +261,64 @@ router.get('/hygiene', async (req, res) => {
     res.json({ hygieneIssues: issues });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Agentic Impact Assessment & Graph Traversal Endpoints ---
+
+/**
+ * GET /api/v1/admin/flags/:key/dependents
+ * Returns direct and transitive downstream dependents and upstream prerequisites.
+ */
+router.get('/flags/:key/dependents', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const [downstream, upstream] = await Promise.all([
+      flagService.getDownstreamDependents(key),
+      flagService.getUpstreamPrerequisites(key)
+    ]);
+    res.json({
+      flagKey: key,
+      downstream,
+      upstream,
+      directDependentsCount: downstream.filter(d => d.depth === 1).length,
+      transitiveDependentsCount: downstream.length,
+      upstreamPrerequisitesCount: upstream.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/v1/admin/graph/dependencies
+ * Returns complete dependency graph with nodes and directed edges for the entire catalog.
+ */
+router.get('/graph/dependencies', async (req, res) => {
+  try {
+    const graph = await flagService.getFullDependencyGraph();
+    res.json(graph);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/v1/admin/simulate-impact
+ * Performs an in-memory batch simulation of a proposed flag mutation across contexts.
+ */
+router.post('/simulate-impact', async (req, res) => {
+  try {
+    const { proposedFlag, testContexts } = req.body;
+    if (!proposedFlag || !proposedFlag.key) {
+      return res.status(400).json({ error: 'Missing required field: proposedFlag with key' });
+    }
+
+    const { allFlagsMap, segmentsMap } = await flagService.getEvaluationContextMaps();
+    const result = simulateBatchImpact(proposedFlag, testContexts, { allFlagsMap, segmentsMap });
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 

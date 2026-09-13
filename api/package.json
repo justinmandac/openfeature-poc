@@ -8,9 +8,11 @@
     "dev": "nodemon src/server.js",
     "migrate": "node src/db/runMigrations.js",
     "seed": "node src/db/runSeeds.js",
-    "test": "jest --detectOpenHandles --forceExit"
+    "test": "jest --detectOpenHandles --forceExit",
+    "mcp": "node src/mcp/server.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "better-sqlite3": "^11.8.1",
