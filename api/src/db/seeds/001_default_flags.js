@@ -425,6 +425,25 @@ exports.seed = async function(knex) {
       version: 1
     },
     {
+      key: 'cards.controls.biometric-freeze',
+      legacy_key: null,
+      business_unit_id: 'bu-cards',
+      app_id: 'app-cards-controls',
+      shared_channels: JSON.stringify(['web', 'mobile']),
+      is_global: false,
+      type: 'BOOLEAN',
+      state: 'ENABLED',
+      lifecycle_state: 'ENABLED',
+      default_variant: 'on',
+      variants: JSON.stringify({ on: true, off: false }),
+      prerequisites: JSON.stringify([]),
+      rules: JSON.stringify([]),
+      schema: null,
+      app_tags: JSON.stringify(['webapp', 'mobile-app']),
+      description: 'Instant biometric card freeze and remote security lock from mobile wallet',
+      version: 1
+    },
+    {
       key: 'wealth.portfolio.live-simulation',
       legacy_key: null,
       business_unit_id: 'bu-wealth',

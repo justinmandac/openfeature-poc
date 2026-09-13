@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="apex_bg_dark">#0A1128</color>
+    <color name="apex_card_dark">#121E3E</color>
+    <color name="apex_primary">#00E5FF</color>
+    <color name="apex_emerald">#00D09C</color>
+    <color name="apex_gold">#F5A623</color>
+    <color name="apex_text_primary">#F8FAFC</color>
+    <color name="apex_text_secondary">#94A3B8</color>
+</resources>
