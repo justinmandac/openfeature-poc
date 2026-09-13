@@ -577,8 +577,8 @@ export default function FlagStudio({
             {activeSection === 'IDENTITY' && (
               <div className="space-y-6 max-w-4xl">
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">Flag Identity & Classification</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">Flag Identity & Classification</h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     Define the unique key, evaluation type, operational lifecycle, and consuming applications.
                   </p>
                 </div>
@@ -586,9 +586,9 @@ export default function FlagStudio({
                 {/* Key & Type */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
                       <span>Flag Key (Identifier)</span>
-                      <span className="text-[10px] text-slate-500 font-mono">Immutable after creation</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">Immutable after creation</span>
                     </label>
                     <input
                       type="text"
@@ -596,9 +596,9 @@ export default function FlagStudio({
                       value={key}
                       onChange={(e) => setKey(e.target.value)}
                       placeholder="e.g. feature.cross-border-fx"
-                      className="w-full bg-[#0c1322] border border-[#1b2a47] rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-teal-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-zinc-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
-                    <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                    <div className="flex items-center space-x-1 text-[10px] text-zinc-400">
                       <span>Suggestions:</span>
                       {['feature.', 'config.', 'experiment.'].map((prefix) => (
                         <button
@@ -606,7 +606,7 @@ export default function FlagStudio({
                           type="button"
                           disabled={isEditing}
                           onClick={() => setKey(prefix + key.replace(/^(feature\.|config\.|experiment\.)/, ''))}
-                          className="px-1.5 py-0.5 rounded bg-[#111a2e] text-teal-300 hover:text-white font-mono"
+                          className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white font-mono border border-zinc-750 transition-colors"
                         >
                           {prefix}
                         </button>
@@ -615,7 +615,7 @@ export default function FlagStudio({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">OpenFeature Evaluation Type</label>
+                    <label className="text-xs font-semibold text-zinc-300">OpenFeature Evaluation Type</label>
                     <div className="grid grid-cols-4 gap-2">
                       {['BOOLEAN', 'OBJECT', 'STRING', 'NUMBER'].map((t) => (
                         <button
@@ -623,10 +623,10 @@ export default function FlagStudio({
                           type="button"
                           disabled={isEditing}
                           onClick={() => handleTypeChange(t)}
-                          className={`py-2 px-2 rounded-lg text-xs font-mono font-bold transition-all text-center ${
+                          className={`py-2 px-2 rounded-lg text-xs font-mono font-semibold transition-colors text-center ${
                             type === t
-                              ? 'bg-teal-600 text-white shadow-sm'
-                              : 'bg-[#0c1322] text-slate-400 hover:text-white border border-[#1b2a47]'
+                              ? 'bg-zinc-200 text-zinc-950 shadow-xs'
+                              : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
                           }`}
                         >
                           {t}
@@ -638,24 +638,24 @@ export default function FlagStudio({
 
                 {/* Description */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Descriptive Purpose & Context</label>
+                  <label className="text-xs font-semibold text-zinc-300">Descriptive Purpose & Context</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
                     placeholder="Describe the business purpose, release target, or operational behavior of this flag..."
-                    className="w-full bg-[#0c1322] border border-[#1b2a47] rounded-lg p-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500"
                   />
                 </div>
 
                 {/* Lifecycle State & Scopes */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Flag Lifecycle State</label>
+                    <label className="text-xs font-semibold text-zinc-300">Flag Lifecycle State</label>
                     <select
                       value={lifecycleState}
                       onChange={(e) => setLifecycleState(e.target.value)}
-                      className="w-full bg-[#0c1322] border border-[#1b2a47] rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-teal-500 cursor-pointer"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-zinc-500 cursor-pointer"
                     >
                       <option value="ENABLED">ENABLED — Active & evaluating rules</option>
                       <option value="DISABLED">DISABLED — Safely returns default fallback</option>
@@ -666,18 +666,18 @@ export default function FlagStudio({
 
                   {/* App Scopes / Tags */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Consuming Application Scopes</label>
-                    <div className="flex flex-wrap items-center gap-1.5 p-2 bg-[#0c1322] border border-[#1b2a47] rounded-lg min-h-[38px]">
+                    <label className="text-xs font-semibold text-zinc-300">Consuming Application Scopes</label>
+                    <div className="flex flex-wrap items-center gap-1.5 p-2 bg-zinc-900 border border-zinc-800 rounded-lg min-h-[38px]">
                       {appTags.map((tag) => (
                         <span
                           key={tag}
-                          className="flex items-center space-x-1 px-2 py-0.5 rounded bg-[#111a2e] text-teal-300 font-mono text-xs border border-[#1b2a47]"
+                          className="flex items-center space-x-1 px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 font-mono text-xs border border-zinc-700"
                         >
                           <span>#{tag}</span>
                           <button
                             type="button"
                             onClick={() => setAppTags(appTags.filter((t) => t !== tag))}
-                            className="text-slate-500 hover:text-rose-400"
+                            className="text-zinc-500 hover:text-rose-400"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -698,7 +698,7 @@ export default function FlagStudio({
                             setNewTag('');
                           }
                         }}
-                        className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none px-1 font-mono flex-1 min-w-[100px]"
+                        className="bg-transparent text-xs text-white placeholder-zinc-500 focus:outline-none px-1 font-mono flex-1 min-w-[100px]"
                       />
                     </div>
                   </div>
@@ -711,16 +711,16 @@ export default function FlagStudio({
               <div className="space-y-6 max-w-4xl">
                 <div>
                   <h3 className="text-sm font-bold text-white tracking-tight">Variant Dictionary & JSON Schema</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     Configure all possible values for this flag and enforce schema integrity for structured payloads.
                   </p>
                 </div>
 
                 {/* Default Variant Selector */}
-                <div className="p-4 rounded-xl bg-[#0c1322] border border-[#1b2a47] flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
                   <div>
                     <label className="text-xs font-bold text-white block">Default Fallback Variant</label>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-zinc-400">
                       Served when rules do not match or when a client evaluation errors.
                     </p>
                   </div>
@@ -728,57 +728,57 @@ export default function FlagStudio({
                     type="text"
                     value={defaultVariant}
                     onChange={(e) => setDefaultVariant(e.target.value)}
-                    className="w-48 bg-[#111a2e] border border-[#1b2a47] rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-teal-300 focus:outline-none focus:border-teal-500"
+                    className="w-48 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-mono font-semibold text-zinc-200 focus:outline-none focus:border-zinc-500"
                   />
                 </div>
 
                 {/* Variants Editor */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300">
+                    <label className="text-xs font-semibold text-zinc-300">
                       Variants Definition (Key-Value JSON)
                     </label>
-                    <span className="text-[11px] text-slate-500 font-mono">Format: Valid JSON Object</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Format: Valid JSON Object</span>
                   </div>
-                  <div className="rounded-xl border border-[#1b2a47] bg-[#0c1322] p-3">
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
                     <textarea
                       value={variantsJson}
                       onChange={(e) => setVariantsJson(e.target.value)}
                       rows={8}
-                      className="w-full bg-transparent text-xs font-mono text-slate-100 focus:outline-none resize-none leading-relaxed"
+                      className="w-full bg-transparent text-xs font-mono text-zinc-200 focus:outline-none resize-none leading-relaxed"
                     />
                   </div>
                 </div>
 
                 {/* JSON Schema (for OBJECT flags) */}
                 {type === 'OBJECT' && (
-                  <div className="space-y-3 p-4 rounded-xl bg-[#0c1322] border border-[#1b2a47]">
+                  <div className="space-y-3 p-4 rounded-xl bg-zinc-900 border border-zinc-800">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <FileJson className="w-4 h-4 text-teal-400" />
-                        <label className="text-xs font-bold text-white">
+                        <FileJson className="w-4 h-4 text-zinc-400" />
+                        <label className="text-xs font-semibold text-zinc-100">
                           JSON Schema Validation (Draft 2020-12 / Draft 7)
                         </label>
                       </div>
                       <button
                         type="button"
                         onClick={handleTestSchema}
-                        className="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs transition-all cursor-pointer"
+                        className="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-medium text-xs transition-colors cursor-pointer"
                       >
                         Validate Schema
                       </button>
                     </div>
 
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-zinc-400">
                       Ensures payloads saved in this flag conform to enterprise schema before persistence.
                     </p>
 
-                    <div className="rounded-lg border border-[#16223b] bg-[#070b14] p-3">
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
                       <textarea
                         value={schemaJson}
                         onChange={(e) => setSchemaJson(e.target.value)}
                         rows={8}
-                        className="w-full bg-transparent text-xs font-mono text-slate-200 focus:outline-none resize-none leading-relaxed"
+                        className="w-full bg-transparent text-xs font-mono text-zinc-200 focus:outline-none resize-none leading-relaxed"
                         placeholder="Paste JSON Schema specification here..."
                       />
                     </div>
@@ -809,10 +809,10 @@ export default function FlagStudio({
               <div className="space-y-6 max-w-4xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">
+                    <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">
                       Upstream Prerequisite Dependencies
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-zinc-400 mt-0.5">
                       Prerequisite flags must evaluate to a specific variant before this flag evaluates its rules.
                     </p>
                   </div>
@@ -820,7 +820,7 @@ export default function FlagStudio({
                   <button
                     type="button"
                     onClick={handleAddPrerequisite}
-                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs shadow-md shadow-teal-950 cursor-pointer"
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs shadow-sm transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Prerequisite</span>
@@ -828,10 +828,10 @@ export default function FlagStudio({
                 </div>
 
                 {prerequisites.length === 0 ? (
-                  <div className="p-10 rounded-xl bg-[#0c1322] border border-[#1b2a47] text-center space-y-2">
-                    <Link2 className="w-8 h-8 text-slate-600 mx-auto" />
-                    <h4 className="font-bold text-white text-xs">No Prerequisite Dependencies</h4>
-                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  <div className="p-10 rounded-xl bg-zinc-900 border border-zinc-800 text-center space-y-2">
+                    <Link2 className="w-8 h-8 text-zinc-600 mx-auto" />
+                    <h4 className="font-semibold text-zinc-200 text-xs">No Prerequisite Dependencies</h4>
+                    <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                       This flag evaluates independently without requiring upstream flags to be enabled first.
                     </p>
                   </div>
@@ -840,22 +840,22 @@ export default function FlagStudio({
                     {prerequisites.map((prereq, index) => (
                       <div
                         key={index}
-                        className="p-4 rounded-xl bg-[#0c1322] border border-[#1b2a47] flex items-center justify-between gap-4"
+                        className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between gap-4"
                       >
                         <div className="flex items-center space-x-3 flex-1">
-                          <span className="p-2 rounded-lg bg-[#111a2e] text-teal-400 border border-[#1b2a47]">
+                          <span className="p-2 rounded-lg bg-zinc-950 text-zinc-400 border border-zinc-800">
                             <Link2 className="w-4 h-4" />
                           </span>
 
                           <div className="flex-1 grid grid-cols-2 gap-3">
                             <div>
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                              <label className="text-[10px] uppercase font-semibold text-zinc-400 block mb-1">
                                 Prerequisite Flag
                               </label>
                               <select
                                 value={prereq.flagKey}
                                 onChange={(e) => handleUpdatePrerequisite(index, 'flagKey', e.target.value)}
-                                className="w-full bg-[#111a2e] border border-[#1b2a47] rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-teal-500"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-500"
                               >
                                 {allFlags
                                   .filter((f) => f.key !== key)
@@ -868,7 +868,7 @@ export default function FlagStudio({
                             </div>
 
                             <div>
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                              <label className="text-[10px] uppercase font-semibold text-zinc-400 block mb-1">
                                 Required Variant
                               </label>
                               <input
@@ -876,7 +876,7 @@ export default function FlagStudio({
                                 value={prereq.variant}
                                 onChange={(e) => handleUpdatePrerequisite(index, 'variant', e.target.value)}
                                 placeholder="on"
-                                className="w-full bg-[#111a2e] border border-[#1b2a47] rounded-lg px-3 py-1.5 text-xs font-mono text-teal-300 font-bold focus:outline-none focus:border-teal-500"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-mono text-zinc-200 font-semibold focus:outline-none focus:border-zinc-500"
                               />
                             </div>
                           </div>
@@ -885,7 +885,7 @@ export default function FlagStudio({
                         <button
                           type="button"
                           onClick={() => handleRemovePrerequisite(index)}
-                          className="p-2 rounded-lg bg-[#111a2e] text-slate-400 hover:text-rose-400 border border-[#1b2a47]"
+                          className="p-2 rounded-lg bg-zinc-950 text-zinc-400 hover:text-rose-400 border border-zinc-800 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -901,10 +901,10 @@ export default function FlagStudio({
               <div className="space-y-6 max-w-4xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">
+                    <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">
                       Targeting Rule Hierarchy & Canary Rollouts
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-zinc-400 mt-0.5">
                       Rules are evaluated in strict priority order (1, 2, 3). The first matching rule resolves.
                     </p>
                   </div>
@@ -912,7 +912,7 @@ export default function FlagStudio({
                   <button
                     type="button"
                     onClick={handleAddRule}
-                    className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs shadow-md shadow-teal-950 cursor-pointer"
+                    className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs shadow-sm transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Targeting Rule</span>
@@ -920,10 +920,10 @@ export default function FlagStudio({
                 </div>
 
                 {rules.length === 0 ? (
-                  <div className="p-10 rounded-xl bg-[#0c1322] border border-[#1b2a47] text-center space-y-2">
-                    <Sliders className="w-8 h-8 text-slate-600 mx-auto" />
-                    <h4 className="font-bold text-white text-xs">No Custom Targeting Rules</h4>
-                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  <div className="p-10 rounded-xl bg-zinc-900 border border-zinc-800 text-center space-y-2">
+                    <Sliders className="w-8 h-8 text-zinc-600 mx-auto" />
+                    <h4 className="font-semibold text-zinc-200 text-xs">No Custom Targeting Rules</h4>
+                    <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                       All incoming OFREP evaluations will resolve to default variant "{defaultVariant}".
                     </p>
                   </div>
@@ -932,26 +932,26 @@ export default function FlagStudio({
                     {rules.map((rule, index) => (
                       <div
                         key={rule.id || index}
-                        className="p-4 rounded-xl bg-[#0c1322] border border-[#1b2a47] space-y-3"
+                        className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-3"
                       >
-                        <div className="flex items-center justify-between border-b border-[#16223b] pb-2">
+                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
                           <div className="flex items-center space-x-2">
-                            <span className="w-6 h-6 rounded-full bg-teal-600/20 border border-teal-500/40 flex items-center justify-center text-teal-300 font-mono font-bold text-xs">
+                            <span className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-200 font-mono font-bold text-xs">
                               {index + 1}
                             </span>
-                            <span className="text-xs font-bold text-white">
+                            <span className="text-xs font-semibold text-zinc-200">
                               Rule #{index + 1} (Priority {rule.priority || index + 1})
                             </span>
                           </div>
 
                           <div className="flex items-center space-x-2">
-                            <span className="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 font-mono text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/80 text-emerald-400 font-mono text-[10px] font-medium">
                               ACTIVE
                             </span>
                             <button
                               type="button"
                               onClick={() => handleRemoveRule(index)}
-                              className="p-1.5 rounded text-slate-400 hover:text-rose-400 hover:bg-[#111a2e]"
+                              className="p-1.5 rounded text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -960,10 +960,10 @@ export default function FlagStudio({
 
                         {/* Condition JSON */}
                         <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400">
+                          <div className="flex items-center justify-between text-[10px] uppercase font-semibold text-zinc-400">
                             <span>Condition Match Expression (JSON Context Attributes)</span>
                             {segments.length > 0 && (
-                              <span className="text-teal-400 font-mono normal-case">
+                              <span className="text-zinc-400 font-mono normal-case">
                                 Segment templates available
                               </span>
                             )}
@@ -972,28 +972,28 @@ export default function FlagStudio({
                             rows={3}
                             value={JSON.stringify(rule.condition, null, 2)}
                             onChange={(e) => handleUpdateRule(index, 'condition', e.target.value)}
-                            className="w-full bg-[#111a2e] border border-[#1b2a47] rounded-lg p-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-teal-500 resize-none leading-relaxed"
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-500 resize-none leading-relaxed"
                           />
                         </div>
 
                         {/* Serve Variant & Rollout Slider */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                           <div>
-                            <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                            <label className="text-[10px] uppercase font-semibold text-zinc-400 block mb-1">
                               Serves Variant
                             </label>
                             <input
                               type="text"
                               value={rule.variant || defaultVariant}
                               onChange={(e) => handleUpdateRule(index, 'variant', e.target.value)}
-                              className="w-full bg-[#111a2e] border border-[#1b2a47] rounded-lg px-3 py-1.5 text-xs font-mono text-teal-300 font-bold focus:outline-none focus:border-teal-500"
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-mono text-zinc-200 font-semibold focus:outline-none focus:border-zinc-500"
                             />
                           </div>
 
                           <div>
-                            <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 mb-1">
+                            <div className="flex items-center justify-between text-[10px] uppercase font-semibold text-zinc-400 mb-1">
                               <span>Gradual Canary Rollout %</span>
-                              <span className="font-mono text-amber-300">
+                              <span className="font-mono text-amber-400">
                                 {rule.rollout?.percentage ? `${rule.rollout.percentage}%` : '100% Direct'}
                               </span>
                             </div>
@@ -1005,7 +1005,7 @@ export default function FlagStudio({
                               step={5}
                               value={rule.rollout?.percentage || 100}
                               onChange={(e) => handleUpdateRule(index, 'percentage', e.target.value)}
-                              className="w-full accent-teal-500 cursor-pointer"
+                              className="w-full accent-zinc-200 cursor-pointer"
                             />
                           </div>
                         </div>
@@ -1020,17 +1020,17 @@ export default function FlagStudio({
             {activeSection === 'GOVERNANCE' && (
               <div className="space-y-6 max-w-4xl">
                 <div>
-                  <h3 className="text-sm font-bold text-white tracking-tight">
+                  <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">
                     Governance & Change Justification
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     Audit change justification required for production flag changes.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">
+                    <label className="text-xs font-semibold text-zinc-300">
                       Change Request Ticket ID (ITSM / Jira)
                     </label>
                     <input
@@ -1038,24 +1038,24 @@ export default function FlagStudio({
                       value={changeTicket}
                       onChange={(e) => setChangeTicket(e.target.value)}
                       placeholder="CHG-9281"
-                      className="w-full bg-[#0c1322] border border-[#1b2a47] rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-teal-500"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-500"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Author / Operator ID</label>
+                    <label className="text-xs font-semibold text-zinc-300">Author / Operator ID</label>
                     <input
                       type="text"
                       value={author}
                       onChange={(e) => setAuthor(e.target.value)}
                       placeholder="admin-architect"
-                      className="w-full bg-[#0c1322] border border-[#1b2a47] rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-teal-500"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">
+                  <label className="text-xs font-semibold text-zinc-300">
                     Business Justification & Blast Radius Assessment
                   </label>
                   <textarea
@@ -1063,15 +1063,15 @@ export default function FlagStudio({
                     onChange={(e) => setChangeReason(e.target.value)}
                     rows={4}
                     placeholder="Provide release rationale, rollout schedule, and risk mitigation plan for audit trail..."
-                    className="w-full bg-[#0c1322] border border-[#1b2a47] rounded-lg p-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 leading-relaxed"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500 leading-relaxed"
                   />
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#0c1322] border border-emerald-800/60 flex items-start space-x-3 text-xs">
+                <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 flex items-start space-x-3 text-xs">
                   <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <div className="font-bold text-white">Governance & Audit Trail Declaration</div>
-                    <div className="text-slate-400 text-[11px] leading-relaxed">
+                    <div className="font-semibold text-zinc-200">Governance & Audit Trail Declaration</div>
+                    <div className="text-zinc-400 text-[11px] leading-relaxed">
                       All modifications create an immutable audit entry in the database.
                       Production activations trigger instant SSE notifications across all listening banking pods.
                     </div>
@@ -1083,22 +1083,22 @@ export default function FlagStudio({
         </div>
 
         {/* Right Column: Pre-Flight Validation Deck & OFREP Dry-Run Sandbox (35% width) */}
-        <aside className="w-[380px] xl:w-[440px] bg-[#0c1322] flex flex-col shrink-0 h-full overflow-hidden select-none">
+        <aside className="w-[380px] xl:w-[440px] bg-zinc-900 border-l border-zinc-800 flex flex-col shrink-0 h-full overflow-hidden select-none">
           {/* Header */}
-          <div className="p-4 border-b border-[#16223b] bg-[#090f1c] flex items-center justify-between">
+          <div className="p-4 border-b border-zinc-800 bg-zinc-950/60 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-teal-400" />
-              <h4 className="font-bold text-white text-xs">Pre-Flight Validation & Simulation</h4>
+              <Sparkles className="w-4 h-4 text-zinc-400" />
+              <h4 className="font-semibold text-zinc-100 text-xs">Pre-Flight Validation & Simulation</h4>
             </div>
-            <span className="font-mono text-[10px] text-teal-300 bg-teal-950 px-2 py-0.5 rounded border border-teal-800">
+            <span className="font-mono text-[10px] text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
               Live Preview
             </span>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
             {/* 1. Validation Checklist */}
-            <div className="p-3.5 rounded-xl bg-[#111a2e] border border-[#1b2a47] space-y-2">
-              <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+            <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+              <div className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider">
                 Pre-Flight Checklist
               </div>
 
@@ -1109,24 +1109,24 @@ export default function FlagStudio({
                   ) : (
                     <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   )}
-                  <span className={key.trim() ? 'text-slate-300' : 'text-amber-300'}>
+                  <span className={key.trim() ? 'text-zinc-300' : 'text-amber-400'}>
                     Flag Key specified ({key || 'Missing'})
                   </span>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-slate-300">Default Variant: "{defaultVariant}"</span>
+                  <span className="text-zinc-300">Default Variant: "{defaultVariant}"</span>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-slate-300">{rules.length} Custom Targeting Rules</span>
+                  <span className="text-zinc-300">{rules.length} Custom Targeting Rules</span>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-slate-300">
+                  <span className="text-zinc-300">
                     {prerequisites.length} Upstream Prerequisites
                   </span>
                 </div>
@@ -1134,9 +1134,9 @@ export default function FlagStudio({
             </div>
 
             {/* 2. Interactive OFREP Dry-Run Evaluation Sandbox */}
-            <div className="p-3.5 rounded-xl bg-[#111a2e] border border-[#1b2a47] space-y-3">
+            <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-1.5 text-teal-300 font-bold text-xs">
+                <div className="flex items-center space-x-1.5 text-zinc-200 font-semibold text-xs">
                   <Play className="w-3.5 h-3.5 fill-current" />
                   <span>OFREP Dry-Run Sandbox</span>
                 </div>
@@ -1243,8 +1243,8 @@ export default function FlagStudio({
                 <div className="space-y-2.5 pt-1">
                   {/* Blast Radius Percentage & Risk */}
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-300">
-                      Calculated Blast Radius: <strong className="font-mono text-white">{batchImpactResult.blastRadiusPercentage}%</strong>
+                    <span className="text-[11px] text-zinc-300">
+                      Calculated Blast Radius: <strong className="font-mono text-zinc-100">{batchImpactResult.blastRadiusPercentage}%</strong>
                     </span>
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
@@ -1260,20 +1260,20 @@ export default function FlagStudio({
                   </div>
 
                   {/* Visual Progress Bar */}
-                  <div className="w-full bg-[#070b14] h-2 rounded-full overflow-hidden border border-[#16223b]">
+                  <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-zinc-800">
                     <div
                       className={`h-full transition-all duration-500 ${
                         batchImpactResult.riskRating === 'HIGH'
                           ? 'bg-rose-500'
                           : batchImpactResult.riskRating === 'MEDIUM'
                           ? 'bg-amber-500'
-                          : 'bg-teal-500'
+                          : 'bg-zinc-400'
                       }`}
                       style={{ width: `${Math.max(batchImpactResult.blastRadiusPercentage, 5)}%` }}
                     />
                   </div>
 
-                  <div className="text-[10px] text-slate-400 font-mono">
+                  <div className="text-[10px] text-zinc-400 font-mono">
                     {batchImpactResult.contextsWithChanges} of {batchImpactResult.totalContextsEvaluated} synthetic banking cohorts affected.
                   </div>
 
@@ -1292,16 +1292,16 @@ export default function FlagStudio({
 
                   {/* Downstream Impacted Flags List */}
                   {batchImpactResult.downstreamImpacts.length > 0 && (
-                    <div className="space-y-1 pt-1 border-t border-[#16223b]">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    <div className="space-y-1 pt-1 border-t border-zinc-800">
+                      <span className="text-[10px] uppercase font-semibold text-zinc-400 block">
                         Downstream Impacted Flags ({batchImpactResult.downstreamImpacts.length})
                       </span>
                       {batchImpactResult.downstreamImpacts.map((dep) => (
                         <div
                           key={dep.flagKey}
-                          className="p-2 rounded bg-[#070b14] border border-[#16223b] font-mono text-[10px] space-y-0.5"
+                          className="p-2 rounded bg-zinc-950 border border-zinc-800 font-mono text-[10px] space-y-0.5"
                         >
-                          <div className="flex items-center justify-between text-slate-200 font-bold">
+                          <div className="flex items-center justify-between text-zinc-200 font-semibold">
                             <span className="truncate">{dep.flagKey}</span>
                             <span className="text-amber-400 ml-2">{dep.impactedContexts} cohorts</span>
                           </div>
@@ -1316,8 +1316,8 @@ export default function FlagStudio({
                   )}
                 </div>
               ) : (
-                <div className="text-[10px] text-slate-400 leading-relaxed">
-                  Click <strong className="text-teal-400">Analyze Impact</strong> to simulate this proposed flag across 30+ synthetic banking cohorts (SG, HK, US, PH) and verify that no downstream dependent flags break.
+                <div className="text-[10px] text-zinc-400 leading-relaxed">
+                  Click <strong className="text-zinc-200">Analyze Impact</strong> to simulate this proposed flag across 30+ synthetic banking cohorts (SG, HK, US, PH) and verify that no downstream dependent flags break.
                 </div>
               )}
             </div>

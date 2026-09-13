@@ -62,13 +62,13 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
   };
 
   return (
-    <div className="space-y-4 text-xs">
+    <div className="space-y-4 text-xs text-zinc-200">
       {/* Description & Quick Presets */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium text-[11px]">Evaluation Context (OFREP)</span>
+          <span className="text-zinc-400 font-medium text-[11px]">Evaluation Context (OFREP)</span>
           <div className="flex items-center space-x-1 text-[10px]">
-            <span className="text-slate-500">Presets:</span>
+            <span className="text-zinc-500 font-mono">Presets:</span>
             <button
               onClick={() =>
                 applyPreset({
@@ -78,7 +78,7 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
                   userTier: 'VIP'
                 })
               }
-              className="px-1.5 py-0.5 rounded bg-[#16223b] text-teal-300 hover:text-white"
+              className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono transition-colors"
             >
               SG VIP
             </button>
@@ -91,7 +91,7 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
                   userTier: 'STANDARD'
                 })
               }
-              className="px-1.5 py-0.5 rounded bg-[#16223b] text-teal-300 hover:text-white"
+              className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono transition-colors"
             >
               PH Retail
             </button>
@@ -103,7 +103,7 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
                   businessUnit: 'Consumer'
                 })
               }
-              className="px-1.5 py-0.5 rounded bg-[#16223b] text-teal-300 hover:text-white"
+              className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono transition-colors"
             >
               Anon Default
             </button>
@@ -111,12 +111,12 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
         </div>
 
         {/* JSON Context Textarea */}
-        <div className="relative rounded-lg border border-[#1b2a47] bg-[#090f1c] overflow-hidden">
+        <div className="relative rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
           <textarea
             value={contextJson}
             onChange={(e) => setContextJson(e.target.value)}
             rows={5}
-            className="w-full bg-transparent p-2.5 text-slate-200 font-mono text-[11px] focus:outline-none resize-none leading-relaxed"
+            className="w-full bg-transparent p-2.5 text-zinc-200 font-mono text-[11px] focus:outline-none resize-none leading-relaxed"
             placeholder="{ targetingKey: 'user-1' }"
           />
         </div>
@@ -126,16 +126,16 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
       <button
         onClick={handleRunEvaluation}
         disabled={loading}
-        className="w-full py-2 px-3 rounded-lg bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white font-semibold text-xs flex items-center justify-center space-x-2 transition-all shadow-md shadow-teal-950 disabled:opacity-50 cursor-pointer"
+        className="w-full py-2 px-3 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs flex items-center justify-center space-x-2 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
       >
         {loading ? (
           <>
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            <span>Evaluating against Core OFREP Engine...</span>
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-zinc-950" />
+            <span>Evaluating against OFREP Engine...</span>
           </>
         ) : (
           <>
-            <Play className="w-3.5 h-3.5 fill-current" />
+            <Play className="w-3.5 h-3.5 fill-current text-zinc-950" />
             <span>Run OFREP Evaluation Simulator</span>
           </>
         )}
@@ -143,10 +143,10 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
 
       {/* Error Display */}
       {error && (
-        <div className="p-3 rounded-lg bg-rose-950/50 border border-rose-900/80 text-rose-300 flex items-start space-x-2">
+        <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-900/60 text-rose-300 flex items-start space-x-2">
           <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5 min-w-0">
-            <div className="font-bold text-[11px]">Evaluation Error</div>
+            <div className="font-semibold text-[11px]">Evaluation Error</div>
             <div className="text-[11px] text-rose-200 font-mono break-words">{error}</div>
           </div>
         </div>
@@ -154,16 +154,16 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
 
       {/* Result Display */}
       {result && (
-        <div className="p-3.5 rounded-xl bg-[#090f1c] border border-teal-900/60 space-y-3 shadow-inner">
-          <div className="flex items-center justify-between border-b border-[#16223b] pb-2">
+        <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
             <div className="flex items-center space-x-1.5 text-emerald-400 font-semibold text-xs">
               <CheckCircle2 className="w-4 h-4" />
               <span>Resolved Evaluation Result</span>
             </div>
 
-            <div className="flex items-center space-x-2 font-mono text-[10px] text-slate-400">
+            <div className="flex items-center space-x-2 font-mono text-[10px] text-zinc-400">
               <span className="flex items-center space-x-1">
-                <Clock className="w-3 h-3 text-slate-500" />
+                <Clock className="w-3 h-3 text-zinc-500" />
                 <span>{latencyMs}ms</span>
               </span>
             </div>
@@ -171,16 +171,16 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
 
           {/* Grid of Outcome */}
           <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="p-2 rounded bg-[#111a2e] border border-[#1b2a47]">
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Variant</span>
-              <span className="font-mono font-bold text-teal-300 text-xs">
+            <div className="p-2 rounded bg-zinc-900 border border-zinc-800">
+              <span className="text-zinc-400 block text-[10px] uppercase font-semibold">Variant</span>
+              <span className="font-mono font-semibold text-zinc-100 text-xs">
                 {result.variant || 'N/A'}
               </span>
             </div>
 
-            <div className="p-2 rounded bg-[#111a2e] border border-[#1b2a47]">
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Reason</span>
-              <span className="font-mono font-bold text-white text-xs">
+            <div className="p-2 rounded bg-zinc-900 border border-zinc-800">
+              <span className="text-zinc-400 block text-[10px] uppercase font-semibold">Reason</span>
+              <span className="font-mono font-semibold text-zinc-100 text-xs">
                 {result.reason || 'TARGETING_MATCH'}
               </span>
             </div>
@@ -188,27 +188,27 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
 
           {/* Evaluated Value Box */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-slate-400 text-[10px] uppercase font-semibold">
+            <div className="flex items-center justify-between text-zinc-400 text-[10px] uppercase font-semibold">
               <span>Evaluated Value</span>
               <button
                 onClick={() => setShowRawJson(!showRawJson)}
-                className="text-teal-400 hover:text-teal-300 lowercase font-mono"
+                className="text-zinc-400 hover:text-white lowercase font-mono transition-colors"
               >
                 {showRawJson ? 'hide raw' : 'view raw OFREP'}
               </button>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-[#070b14] border border-[#16223b] font-mono text-[11px] text-emerald-300 max-h-36 overflow-y-auto">
+            <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 font-mono text-[11px] text-zinc-200 max-h-36 overflow-y-auto">
               {showRawJson ? (
-                <pre className="text-slate-300 whitespace-pre-wrap">
+                <pre className="text-zinc-300 whitespace-pre-wrap leading-relaxed">
                   {JSON.stringify(result, null, 2)}
                 </pre>
               ) : typeof result.value === 'object' ? (
-                <pre className="text-slate-200 whitespace-pre-wrap">
+                <pre className="text-zinc-200 whitespace-pre-wrap leading-relaxed">
                   {JSON.stringify(result.value, null, 2)}
                 </pre>
               ) : (
-                <span className="font-bold text-emerald-400">{String(result.value)}</span>
+                <span className="font-semibold text-emerald-400">{String(result.value)}</span>
               )}
             </div>
           </div>
