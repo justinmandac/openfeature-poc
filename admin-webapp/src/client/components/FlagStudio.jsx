@@ -979,10 +979,10 @@ export default function FlagStudio({
               <div className="space-y-6 max-w-4xl">
                 <div>
                   <h3 className="text-sm font-bold text-white tracking-tight">
-                    Banking Governance & Change Justification
+                    Governance & Change Justification
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Immutable SOX 404 change justification required for production flag changes.
+                    Audit change justification required for production flag changes.
                   </p>
                 </div>
 
@@ -1020,7 +1020,7 @@ export default function FlagStudio({
                     value={changeReason}
                     onChange={(e) => setChangeReason(e.target.value)}
                     rows={4}
-                    placeholder="Provide release rationale, rollout schedule, and risk mitigation plan for compliance audit..."
+                    placeholder="Provide release rationale, rollout schedule, and risk mitigation plan for audit trail..."
                     className="w-full bg-[#0c1322] border border-[#1b2a47] rounded-lg p-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 leading-relaxed"
                   />
                 </div>
@@ -1028,9 +1028,9 @@ export default function FlagStudio({
                 <div className="p-4 rounded-xl bg-[#0c1322] border border-emerald-800/60 flex items-start space-x-3 text-xs">
                   <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <div className="font-bold text-white">SOC2 Type II & Four-Eyes Principle Declaration</div>
+                    <div className="font-bold text-white">Governance & Audit Trail Declaration</div>
                     <div className="text-slate-400 text-[11px] leading-relaxed">
-                      All modifications will create an immutable cryptographic audit entry in the database.
+                      All modifications create an immutable audit entry in the database.
                       Production activations trigger instant SSE notifications across all listening banking pods.
                     </div>
                   </div>

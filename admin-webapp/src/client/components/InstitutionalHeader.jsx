@@ -3,7 +3,6 @@ import {
   Activity,
   Radio,
   Clock,
-  ShieldCheck,
   RefreshCw,
   Plus,
   Zap,
@@ -74,11 +73,6 @@ export default function InstitutionalHeader({
           <span className="font-mono font-bold text-emerald-400 text-xs">LOW (1.2%)</span>
         </div>
 
-        {/* Governance & Compliance */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-emerald-300">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="font-mono text-[10px] uppercase font-bold tracking-wide">SOX / SOC2 Compliant</span>
-        </div>
       </div>
 
       {/* Right: Quick Operational Actions */}

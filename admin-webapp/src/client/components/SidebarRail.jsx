@@ -5,7 +5,6 @@ import {
   Clock,
   ShieldAlert,
   BarChart3,
-  ShieldCheck,
   Server,
   ChevronDown,
   Building2,
@@ -192,24 +191,14 @@ export default function SidebarRail({
           </div>
         </div>
 
-        {/* Operator Profile & Compliance Stamp */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center space-x-2 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs shrink-0">
-              EC
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-semibold text-slate-200 truncate">E. Chen</div>
-              <div className="text-[10px] text-slate-400 truncate">Lead Platform Architect</div>
-            </div>
+        {/* Operator Profile */}
+        <div className="flex items-center space-x-2 px-1">
+          <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs shrink-0">
+            EC
           </div>
-
-          <div
-            className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/80 text-emerald-400 text-[10px] font-mono shrink-0"
-            title="SOC2 Type II and SOX 404 Audit Logging Enforced"
-          >
-            <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span>SOC2</span>
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-slate-200 truncate">E. Chen</div>
+            <div className="text-[10px] text-slate-400 truncate">Lead Platform Architect</div>
           </div>
         </div>
       </div>
