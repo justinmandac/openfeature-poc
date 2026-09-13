@@ -461,53 +461,47 @@ export default function FlagStudio({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#070b14] text-slate-100 flex flex-col h-screen w-screen overflow-hidden select-none font-sans">
+    <div className="fixed inset-0 z-50 bg-zinc-950 text-zinc-100 flex flex-col h-screen w-screen overflow-hidden select-none font-sans">
       {/* Top Studio Command Bar */}
-      <header className="h-16 bg-[#0c1322] border-b border-[#16223b] px-6 flex items-center justify-between shrink-0 z-30 shadow-md">
+      <header className="h-16 bg-zinc-900 border-b border-zinc-800 px-6 flex items-center justify-between shrink-0 z-30">
         {/* Left: Exit & Flag Metadata */}
         <div className="flex items-center space-x-4">
           <button
             onClick={onClose}
-            className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#111a2e] hover:bg-[#16233d] text-slate-300 hover:text-white border border-[#1b2a47] text-xs transition-colors cursor-pointer"
+            className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-xs transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Exit Studio</span>
           </button>
 
-          <div className="h-6 w-px bg-[#16223b]" />
+          <div className="h-6 w-px bg-zinc-800" />
 
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-mono font-bold text-sm text-white tracking-tight">
+              <span className="font-mono font-semibold text-sm text-white tracking-tight">
                 {key || 'untitled.flag'}
               </span>
 
-              <span
-                className={`px-2 py-0.2 rounded text-[10px] font-bold font-mono ${
-                  type === 'BOOLEAN'
-                    ? 'bg-blue-950 text-blue-300 border border-blue-800'
-                    : 'bg-purple-950 text-purple-300 border border-purple-800'
-                }`}
-              >
+              <span className="px-2 py-0.2 rounded text-[10px] font-medium font-mono bg-zinc-800 text-zinc-200 border border-zinc-700">
                 {type}
               </span>
 
-              <span className="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+              <span className="px-2 py-0.2 rounded-full text-[10px] font-mono font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/80">
                 {lifecycleState}
               </span>
             </div>
-            <div className="text-[11px] text-slate-400">
-              {isEditing ? 'Editing Enterprise Flag Configuration' : 'Authoring New OpenFeature Flag'}
+            <div className="text-[11px] text-zinc-400">
+              {isEditing ? 'Editing Flag Definition' : 'Authoring New OpenFeature Flag'}
             </div>
           </div>
         </div>
 
         {/* Center: Environment Guardrails Indicator */}
-        <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-full bg-[#111a2e] border border-[#1b2a47] text-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="font-mono text-slate-300 font-medium">Target: {environment}</span>
+        <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span className="font-mono text-zinc-200 font-medium">Target: {environment}</span>
           {environment.startsWith('PROD') && (
-            <span className="text-amber-400 font-semibold text-[10px] uppercase ml-1 flex items-center space-x-1">
+            <span className="text-amber-400 font-medium text-[10px] uppercase ml-1 flex items-center space-x-1">
               <Lock className="w-3 h-3" />
               <span>Guardrails Active</span>
             </span>
@@ -518,7 +512,7 @@ export default function FlagStudio({
         <div className="flex items-center space-x-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs font-semibold cursor-pointer"
+            className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
           >
             Discard
           </button>
@@ -526,17 +520,17 @@ export default function FlagStudio({
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="px-5 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-teal-950 flex items-center space-x-2 transition-all cursor-pointer disabled:opacity-50"
+            className="px-5 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs shadow-sm flex items-center space-x-2 transition-colors cursor-pointer disabled:opacity-50"
           >
             {submitting ? (
               <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-zinc-900" />
                 <span>Publishing to OFREP Engine...</span>
               </>
             ) : (
               <>
-                <Check className="w-4 h-4" />
-                <span>{isEditing ? 'Save & Deploy Changes' : 'Publish & Deploy Flag'}</span>
+                <Check className="w-4 h-4 text-zinc-950" />
+                <span>{isEditing ? 'Save & Deploy Changes' : 'Publish Flag'}</span>
               </>
             )}
           </button>
@@ -545,18 +539,18 @@ export default function FlagStudio({
 
       {/* Main Studio Body: 2-Column Wide Split Layout */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Left Column: Spacious Authoring Workbench (65% width) */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-[#16223b] overflow-hidden bg-[#070b14]">
+        {/* Left Column: Authoring Workbench */}
+        <div className="flex-1 flex flex-col min-w-0 border-r border-zinc-800 overflow-hidden bg-zinc-950">
           {/* Studio Steps Navigation Bar */}
-          <div className="h-12 bg-[#090f1c] border-b border-[#16223b] px-6 flex items-center space-x-2 overflow-x-auto shrink-0">
+          <div className="h-12 bg-zinc-900 border-b border-zinc-800 px-6 flex items-center space-x-2 overflow-x-auto shrink-0">
             {sections.map((sec) => (
               <button
                 key={sec.id}
                 onClick={() => setActiveSection(sec.id)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                   activeSection === sec.id
-                    ? 'bg-teal-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#111a2e]'
+                    ? 'bg-zinc-800 text-white'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850'
                 }`}
               >
                 {sec.label}
@@ -1149,55 +1143,55 @@ export default function FlagStudio({
                 <button
                   type="button"
                   onClick={handleSimulateDryRun}
-                  className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-semibold text-[10px] transition-all cursor-pointer"
+                  className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-medium text-[10px] transition-colors cursor-pointer"
                 >
                   Simulate
                 </button>
               </div>
 
-              <p className="text-[10px] text-slate-400 leading-relaxed">
+              <p className="text-[10px] text-zinc-400 leading-relaxed">
                 Test sample user evaluation context against this draft flag before publishing.
               </p>
 
               {/* Sample Context Input */}
               <div className="space-y-1">
-                <span className="text-[10px] text-slate-400 font-mono">Sample Context JSON:</span>
+                <span className="text-[10px] text-zinc-400 font-mono">Sample Context JSON:</span>
                 <textarea
                   rows={4}
                   value={testContextJson}
                   onChange={(e) => setTestContextJson(e.target.value)}
-                  className="w-full bg-[#070b14] border border-[#16223b] rounded-lg p-2 font-mono text-[11px] text-slate-200 focus:outline-none resize-none leading-relaxed"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 font-mono text-[11px] text-zinc-200 focus:outline-none focus:border-zinc-600 resize-none leading-relaxed"
                 />
               </div>
 
               {/* Simulation Result */}
               {dryRunResult && (
-                <div className="p-3 rounded-lg bg-[#070b14] border border-teal-900/60 space-y-2">
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
                   {dryRunResult.error ? (
                     <div className="text-rose-300 text-[11px] font-mono">{dryRunResult.error}</div>
                   ) : (
                     <>
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400 font-semibold">Resolved Variant:</span>
-                        <span className="font-mono font-bold text-teal-300 text-xs">
+                        <span className="text-zinc-400 font-medium">Resolved Variant:</span>
+                        <span className="font-mono font-semibold text-zinc-100 text-xs">
                           {dryRunResult.resolvedVariant}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400 font-semibold">Reason:</span>
-                        <span className="font-mono text-emerald-400 font-semibold text-[10px]">
+                        <span className="text-zinc-400 font-medium">Reason:</span>
+                        <span className="font-mono text-emerald-400 font-medium text-[10px]">
                           {dryRunResult.reason}
                         </span>
                       </div>
 
-                      <div className="text-[10px] text-slate-400 italic">
+                      <div className="text-[10px] text-zinc-400 italic">
                         Path: {dryRunResult.matchedRule}
                       </div>
 
-                      <div className="mt-1 pt-1 border-t border-[#16223b]">
-                        <span className="text-[10px] text-slate-500 block mb-0.5">Value Preview:</span>
-                        <div className="font-mono text-[11px] text-emerald-300 max-h-24 overflow-y-auto">
+                      <div className="mt-1 pt-1 border-t border-zinc-850">
+                        <span className="text-[10px] text-zinc-500 block mb-0.5">Value Preview:</span>
+                        <div className="font-mono text-[11px] text-zinc-200 max-h-24 overflow-y-auto">
                           {typeof dryRunResult.resolvedValue === 'object' ? (
                             <pre className="whitespace-pre-wrap">
                               {JSON.stringify(dryRunResult.resolvedValue, null, 2)}
@@ -1214,13 +1208,13 @@ export default function FlagStudio({
             </div>
 
             {/* 3. Server-Side Automated Blast Radius & Dependency Impact */}
-            <div className="p-3.5 rounded-xl bg-[#111a2e] border border-[#1b2a47] space-y-3">
+            <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-slate-300 uppercase block">
+                  <span className="text-[11px] font-semibold text-zinc-200 uppercase block">
                     Blast Radius & Dependency Impact
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-zinc-400">
                     Stateless multi-cohort simulation
                   </span>
                 </div>
@@ -1229,16 +1223,16 @@ export default function FlagStudio({
                   type="button"
                   onClick={handleRunBatchImpactSimulation}
                   disabled={simulatingBatch}
-                  className="px-2.5 py-1 rounded bg-teal-600 hover:bg-teal-500 text-white font-semibold text-[10px] flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-medium text-[10px] flex items-center space-x-1.5 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {simulatingBatch ? (
                     <>
-                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <RefreshCw className="w-3 h-3 animate-spin text-zinc-300" />
                       <span>Simulating...</span>
                     </>
                   ) : (
                     <>
-                      <Activity className="w-3 h-3" />
+                      <Activity className="w-3 h-3 text-zinc-300" />
                       <span>Analyze Impact</span>
                     </>
                   )}

@@ -144,7 +144,7 @@ export default function App() {
   const selectedFlag = flags.find((f) => f.key === selectedFlagKey) || null;
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#070b14] text-slate-100 antialiased font-sans">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-zinc-950 text-zinc-100 antialiased font-sans">
       {/* Top Institutional Header */}
       <InstitutionalHeader
         flagsCount={flags.length}
@@ -175,7 +175,7 @@ export default function App() {
         />
 
         {/* Center Column: Operations Workbench */}
-        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-zinc-950">
           {activeTab === 'FLAGS' && (
             <FlagInventory
               flags={flags}
@@ -201,17 +201,17 @@ export default function App() {
 
           {activeTab === 'SCHEDULED' && (
             <div className="p-6 flex-1 overflow-y-auto">
-              <div className="p-8 rounded-xl bg-[#0c1322] border border-[#16223b] text-center space-y-4 max-w-2xl mx-auto">
-                <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mx-auto">
-                  <span className="text-xl">⏱️</span>
+              <div className="p-8 rounded-xl bg-zinc-900 border border-zinc-800 text-center space-y-4 max-w-2xl mx-auto">
+                <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 mx-auto">
+                  <span className="text-base">⏱️</span>
                 </div>
-                <h3 className="text-lg font-bold text-white">Scheduled Release Management Queue</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <h3 className="text-base font-bold text-zinc-100">Scheduled Release Management Queue</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
                   Stage future flag state transitions, canary rollout increments, and configuration updates for regulatory go-live dates or scheduled maintenance windows.
                 </p>
                 <button
                   onClick={() => setShowScheduledModal(true)}
-                  className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs inline-flex items-center space-x-2 shadow-lg shadow-teal-950 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs inline-flex items-center space-x-2 transition-colors cursor-pointer"
                 >
                   <span>Open Active Scheduled Releases</span>
                 </button>

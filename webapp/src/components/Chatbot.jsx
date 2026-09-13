@@ -10,7 +10,9 @@ import {
   Calculator,
   TrendingUp,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  X,
+  RefreshCw
 } from 'lucide-react';
 import {
   PortfolioCard,
@@ -20,13 +22,17 @@ import {
 } from './GenerativeUiCards';
 
 const QUICK_PROMPTS = [
-  { label: '📊 Portfolio Breakdown', text: 'Show my portfolio breakdown' },
+  { label: '📊 Asset Allocation', text: 'Show my portfolio breakdown' },
   { label: '💰 Loan Calculator', text: 'Can I get a loan quote?' },
   { label: '✨ Wealth Forecast', text: 'What are your wealth projections?' },
   { label: '💱 Live FX Rates', text: 'What are current foreign exchange rates?' }
 ];
 
-export default function Chatbot({ currentContext, bffUrl = 'http://localhost:4002' }) {
+export default function Chatbot({
+  currentContext,
+  bffUrl = 'http://localhost:4002',
+  onClose
+}) {
   // Evaluates client-side OpenFeature flags reactively
   const geminiUiFlag = useBooleanFlagValue('feature.chatbot-gemini-ui', false);
   const advancedInsightsFlag = useBooleanFlagValue('feature.advanced-financial-insights', false);
@@ -34,7 +40,7 @@ export default function Chatbot({ currentContext, bffUrl = 'http://localhost:400
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: `Hello! I am your AI Financial Assistant. How can I help you today? Ask me for your portfolio allocation, loan quotes, or wealth forecasts.`,
+      text: `Good day! I am Apex Copilot, your AI Financial Assistant. How can I assist you with your accounts or portfolio today?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -78,7 +84,7 @@ export default function Chatbot({ currentContext, bffUrl = 'http://localhost:400
       console.error('BFF chat error:', err);
       const errorMessage = {
         sender: 'bot',
-        text: `Error contacting assistant service: ${err.response?.data?.error || err.message}. (Safe default fallback active)`,
+        text: `Unable to connect to assistant service: ${err.response?.data?.error || err.message}. Fallback mode active.`,
         isError: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -89,66 +95,86 @@ export default function Chatbot({ currentContext, bffUrl = 'http://localhost:400
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[650px] overflow-hidden">
-      {/* Chatbot Header */}
-      <div className="px-5 py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur flex items-center justify-between">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-[650px] overflow-hidden">
+      {/* Copilot Header */}
+      <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400">
-            <Bot className="w-6 h-6" />
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-2xs">
+            <Bot className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h3 className="font-bold text-white text-sm">Financial Intelligence Assistant</h3>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <h3 className="font-bold text-slate-900 text-xs tracking-tight">Apex Copilot</h3>
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Cross-tier OpenFeature Evaluation Demo (Client & BFF)
+            <p className="text-[10px] text-slate-500">
+              AI Financial Assistant &bull; Cross-Tier Evaluation
             </p>
           </div>
         </div>
 
-        {/* Live Flag Status Badges */}
+        {/* Flag Status Badges & Close Button */}
         <div className="flex items-center space-x-2">
-          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
-            geminiUiFlag
-              ? 'bg-emerald-950 border border-emerald-700 text-emerald-300'
-              : 'bg-slate-800 border border-slate-700 text-slate-400'
-          }`}>
+          <span
+            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+              geminiUiFlag
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-slate-100 text-slate-500 border border-slate-200'
+            }`}
+          >
             Generative UI: {geminiUiFlag ? 'ON' : 'OFF'}
           </span>
-          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
-            advancedInsightsFlag
-              ? 'bg-purple-950 border border-purple-700 text-purple-300'
-              : 'bg-slate-800 border border-slate-700 text-slate-400'
-          }`}>
+          <span
+            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+              advancedInsightsFlag
+                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                : 'bg-slate-100 text-slate-500 border border-slate-200'
+            }`}
+          >
             Insights: {advancedInsightsFlag ? 'ON' : 'OFF'}
           </span>
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
+              title="Close Assistant"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Messages Feed */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
         {messages.map((msg, index) => {
           const isBot = msg.sender === 'bot';
           return (
             <div key={index} className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
-              <div className={`max-w-[85%] flex space-x-3 ${isBot ? 'flex-row' : 'flex-row-reverse space-x-reverse'}`}>
+              <div className={`max-w-[85%] flex space-x-2.5 ${isBot ? 'flex-row' : 'flex-row-reverse space-x-reverse'}`}>
                 {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${
-                  isBot ? 'bg-teal-950 border border-teal-700/80 text-teal-400' : 'bg-slate-800 border border-slate-700 text-slate-200'
-                }`}>
-                  {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                <div
+                  className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${
+                    isBot
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'bg-slate-900 text-white'
+                  }`}
+                >
+                  {isBot ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                 </div>
 
                 {/* Message Body */}
                 <div>
-                  <div className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
-                    isBot
-                      ? msg.isError
-                        ? 'bg-rose-950/60 border border-rose-800/80 text-rose-200 rounded-tl-none'
-                        : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-tl-none'
-                      : 'bg-teal-600 text-white font-medium rounded-tr-none shadow-md shadow-teal-900/30'
-                  }`}>
+                  <div
+                    className={`p-3 rounded-xl text-xs leading-relaxed ${
+                      isBot
+                        ? msg.isError
+                          ? 'bg-rose-50 border border-rose-200 text-rose-800 rounded-tl-none'
+                          : 'bg-slate-50 border border-slate-200 text-slate-800 rounded-tl-none'
+                        : 'bg-slate-900 text-white font-normal rounded-tr-none shadow-xs'
+                    }`}
+                  >
                     {msg.text}
 
                     {/* Generative UI Components */}
@@ -170,11 +196,11 @@ export default function Chatbot({ currentContext, bffUrl = 'http://localhost:400
                     )}
                   </div>
 
-                  <div className="text-[10px] text-slate-500 mt-1 px-1 flex items-center justify-between">
+                  <div className="text-[10px] text-slate-400 mt-1 px-1 flex items-center justify-between">
                     <span>{msg.timestamp}</span>
                     {isBot && msg.limitsApplied && (
-                      <span className="font-mono text-[9px] text-slate-500">
-                        Limits: maxTokens={msg.limitsApplied.maxTokens}
+                      <span className="font-mono text-[9px] text-slate-400">
+                        maxTokens: {msg.limitsApplied.maxTokens}
                       </span>
                     )}
                   </div>
@@ -185,21 +211,21 @@ export default function Chatbot({ currentContext, bffUrl = 'http://localhost:400
         })}
 
         {loading && (
-          <div className="flex items-center space-x-2 text-slate-400 text-xs py-2 px-3 bg-slate-950/60 rounded-xl w-fit border border-slate-800">
-            <div className="w-2 h-2 rounded-full bg-teal-400 animate-ping"></div>
-            <span>Evaluating feature flags & generating response...</span>
+          <div className="flex items-center space-x-2 text-slate-500 text-xs py-2 px-3 bg-slate-50 rounded-lg w-fit border border-slate-200">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+            <span>Evaluating flags & synthesizing response...</span>
           </div>
         )}
       </div>
 
       {/* Quick Prompts Bar */}
-      <div className="px-4 py-2 border-t border-slate-800/60 bg-slate-950/40 flex items-center space-x-2 overflow-x-auto">
-        <span className="text-[10px] text-slate-500 font-medium flex-shrink-0">Quick Prompts:</span>
+      <div className="px-3.5 py-2 border-t border-slate-100 bg-slate-50/60 flex items-center space-x-1.5 overflow-x-auto">
+        <span className="text-[10px] text-slate-400 font-medium flex-shrink-0 mr-1">Prompts:</span>
         {QUICK_PROMPTS.map((qp) => (
           <button
             key={qp.label}
             onClick={() => handleSend(qp.text)}
-            className="px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-[11px] font-medium flex-shrink-0 transition-colors border border-slate-700/60"
+            className="px-2.5 py-1 rounded-full bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-medium flex-shrink-0 transition-colors border border-slate-200 shadow-2xs"
           >
             {qp.label}
           </button>
@@ -207,7 +233,7 @@ export default function Chatbot({ currentContext, bffUrl = 'http://localhost:400
       </div>
 
       {/* Input Box */}
-      <div className="p-3 bg-slate-950 border-t border-slate-800">
+      <div className="p-3 bg-white border-t border-slate-200">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -217,17 +243,17 @@ export default function Chatbot({ currentContext, bffUrl = 'http://localhost:400
         >
           <input
             type="text"
-            placeholder="Ask about loans, wealth projection, portfolio..."
+            placeholder="Ask about your accounts, loan terms, portfolio..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="p-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white transition-all shadow-lg shadow-teal-900/30"
+            className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white transition-colors shadow-xs"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>

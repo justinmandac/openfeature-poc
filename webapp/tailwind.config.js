@@ -7,12 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#eff6ff',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+        fintech: {
+          canvas: '#f8fafc',
+          surface: '#ffffff',
+          card: '#ffffff',
+          border: '#e2e8f0',
+          borderSubtle: '#f1f5f9',
+          muted: '#64748b',
+          dark: '#0f172a',
+          accent: '#1e40af',
         }
+      },
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'monospace'],
       }
     },
   },

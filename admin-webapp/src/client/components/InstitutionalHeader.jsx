@@ -1,13 +1,12 @@
 import React from 'react';
 import {
-  Activity,
   Radio,
   Clock,
   RefreshCw,
   Plus,
-  Zap,
-  Lock,
-  Layers
+  Layers,
+  Shield,
+  Command
 } from 'lucide-react';
 
 export default function InstitutionalHeader({
@@ -18,68 +17,62 @@ export default function InstitutionalHeader({
   onOpenScheduledModal,
   environment
 }) {
+  const isProd = environment?.startsWith('PROD');
+
   return (
-    <header className="h-14 bg-[#0c1322] border-b border-[#16223b] px-5 flex items-center justify-between shrink-0 select-none z-30">
+    <header className="h-14 bg-zinc-900 border-b border-zinc-800 px-5 flex items-center justify-between shrink-0 select-none z-30 text-zinc-200">
       {/* Left: System Breadcrumbs & Operational Status */}
       <div className="flex items-center space-x-3">
         <div className="flex items-center space-x-2 text-xs">
-          <span className="font-semibold text-slate-300">Apex Enterprise</span>
-          <span className="text-slate-600">/</span>
-          <span className="text-teal-400 font-mono font-medium">FlagOps Control Center</span>
+          <span className="font-semibold text-zinc-400">Apex Platform</span>
+          <span className="text-zinc-600">/</span>
+          <span className="text-zinc-100 font-medium">FlagOps Management</span>
         </div>
 
-        <div className="hidden xl:flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-[#111a2e] border border-[#1b2a47] text-[10px] text-slate-300">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="font-mono">Node ID: OF-API-4000</span>
+        {/* Environment Safety Badge */}
+        <div
+          className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+            isProd
+              ? 'bg-rose-950/60 border border-rose-800/80 text-rose-300'
+              : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
+          }`}
+        >
+          <Shield className="w-3 h-3" />
+          <span>{environment || 'PROD-US-EAST'}</span>
         </div>
       </div>
 
-      {/* Center: Live Telemetry Pulse & Institutional Indicators */}
-      <div className="hidden lg:flex items-center space-x-3 text-xs">
-        {/* Active Flags Metric */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#111a2e] border border-[#1b2a47]">
-          <Layers className="w-3.5 h-3.5 text-teal-400" />
-          <span className="text-slate-400 text-[11px]">Active Flags:</span>
-          <span className="font-mono font-bold text-white text-xs">{flagsCount}</span>
+      {/* Center: Live Telemetry & Real Indicators */}
+      <div className="hidden md:flex items-center space-x-3 text-xs">
+        {/* Active Flags Count */}
+        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-zinc-950 border border-zinc-800">
+          <Layers className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="text-zinc-400 text-[11px]">Flag Inventory:</span>
+          <span className="font-mono font-semibold text-zinc-100 text-xs tabular-nums">{flagsCount}</span>
         </div>
 
-        {/* Evaluation Throughput */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#111a2e] border border-[#1b2a47]">
-          <Zap className="w-3.5 h-3.5 text-blue-400" />
-          <span className="text-slate-400 text-[11px]">Throughput:</span>
-          <span className="font-mono font-bold text-blue-300 text-xs">42.8k QPS</span>
-        </div>
-
-        {/* SSE Heartbeat */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#111a2e] border border-[#1b2a47]">
-          <Radio className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-slate-400 text-[11px]">SSE Live Stream:</span>
-          <span className="flex items-center space-x-1">
+        {/* SSE Live Connection Status */}
+        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-zinc-950 border border-zinc-800">
+          <Radio className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="text-zinc-400 text-[11px]">SSE Sync:</span>
+          <span className="flex items-center space-x-1.5">
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                sseConnected ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'
+                sseConnected ? 'bg-emerald-400' : 'bg-amber-400'
               }`}
             ></span>
-            <span className="font-mono text-emerald-300 font-semibold text-[11px]">
-              {sseConnected ? 'Synced' : 'Connecting'}
+            <span className="font-mono text-xs font-medium text-zinc-200">
+              {sseConnected ? 'Live' : 'Connecting'}
             </span>
           </span>
         </div>
-
-        {/* Risk Exposure */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-[#111a2e] border border-[#1b2a47]">
-          <Activity className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-slate-400 text-[11px]">Risk Exposure:</span>
-          <span className="font-mono font-bold text-emerald-400 text-xs">LOW (1.2%)</span>
-        </div>
-
       </div>
 
       {/* Right: Quick Operational Actions */}
-      <div className="flex items-center space-x-2.5">
+      <div className="flex items-center space-x-2">
         <button
           onClick={onRefresh}
-          className="p-2 rounded-lg bg-[#111a2e] hover:bg-[#16233d] text-slate-300 hover:text-white border border-[#1b2a47] transition-all"
+          className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition-colors"
           title="Refresh Flag Inventory"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -87,17 +80,18 @@ export default function InstitutionalHeader({
 
         <button
           onClick={onOpenScheduledModal}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#111a2e] hover:bg-[#16233d] text-teal-300 hover:text-teal-200 border border-teal-900/60 text-xs font-medium transition-all"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors"
         >
-          <Clock className="w-3.5 h-3.5 text-teal-400" />
+          <Clock className="w-3.5 h-3.5 text-zinc-400" />
           <span className="hidden sm:inline">Schedule Release</span>
         </button>
 
+        {/* Solid High-Contrast Create Button (No Neon Gradient) */}
         <button
           onClick={onOpenCreate}
-          className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-semibold text-xs shadow-md shadow-teal-950 transition-all cursor-pointer"
+          className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-colors shadow-sm cursor-pointer"
         >
-          <Plus className="w-4 h-4 text-white" />
+          <Plus className="w-4 h-4 text-zinc-950" />
           <span>New Flag</span>
         </button>
       </div>

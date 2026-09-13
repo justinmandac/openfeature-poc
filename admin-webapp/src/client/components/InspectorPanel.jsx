@@ -78,13 +78,13 @@ export default function InspectorPanel({
 
   if (!flag) {
     return (
-      <aside className="w-96 xl:w-[420px] bg-[#0c1322] border-l border-[#16223b] flex flex-col items-center justify-center p-6 text-center shrink-0 select-none">
-        <div className="w-12 h-12 rounded-xl bg-[#111a2e] border border-[#1b2a47] flex items-center justify-center text-slate-500 mb-3">
-          <Layers className="w-6 h-6" />
+      <aside className="w-96 xl:w-[420px] bg-zinc-900 border-l border-zinc-800 flex flex-col items-center justify-center p-6 text-center shrink-0 select-none text-zinc-400">
+        <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 mb-3">
+          <Layers className="w-5 h-5" />
         </div>
-        <h4 className="font-bold text-white text-sm">Context Inspector</h4>
-        <p className="text-xs text-slate-400 mt-1 max-w-xs">
-          Select any feature flag or dynamic config row to inspect live targeting rules, test evaluations, or review schemas.
+        <h4 className="font-semibold text-zinc-100 text-sm">Context Inspector</h4>
+        <p className="text-xs text-zinc-400 mt-1 max-w-xs">
+          Select any feature flag to inspect rules, test runtime evaluations, or examine dependency blast radius.
         </p>
       </aside>
     );
@@ -100,36 +100,30 @@ export default function InspectorPanel({
   const blastRadiusPercent = rolloutRule ? rolloutRule.rollout.percentage : isEnabled ? 100 : 0;
 
   return (
-    <aside className="w-96 xl:w-[420px] bg-[#0c1322] border-l border-[#16223b] flex flex-col justify-between shrink-0 h-full select-none z-20">
+    <aside className="w-96 xl:w-[420px] bg-zinc-900 border-l border-zinc-800 flex flex-col justify-between shrink-0 h-full select-none z-20 text-zinc-200">
       {/* Top Inspector Header */}
-      <div className="p-4 border-b border-[#16223b] bg-[#090f1c] space-y-2.5">
+      <div className="p-4 border-b border-zinc-800 bg-zinc-900 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 min-w-0">
-            <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                flag.type === 'BOOLEAN'
-                  ? 'bg-blue-950 text-blue-300 border border-blue-800'
-                  : 'bg-purple-950 text-purple-300 border border-purple-800'
-              }`}
-            >
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-zinc-800 text-zinc-200 border border-zinc-700">
               {flag.type}
             </span>
 
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
                 flag.lifecycle_state === 'GRADUATED'
-                  ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                  ? 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                   : flag.lifecycle_state === 'DRAFT'
-                  ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                  ? 'bg-amber-950/60 text-amber-300 border border-amber-800/80'
                   : isEnabled
-                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
-                  : 'bg-rose-950 text-rose-300 border border-rose-800'
+                  ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/80'
+                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
               }`}
             >
               {flag.lifecycle_state || flag.state}
             </span>
 
-            <span className="font-mono text-[10px] text-slate-400 bg-[#16223b] px-1.5 py-0.5 rounded">
+            <span className="font-mono text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">
               v{flag.version || 1}
             </span>
           </div>
@@ -137,14 +131,14 @@ export default function InspectorPanel({
           <div className="flex items-center space-x-1">
             <button
               onClick={() => onOpenEdit(flag)}
-              className="p-1.5 rounded bg-[#111a2e] hover:bg-[#16233d] text-slate-300 hover:text-white border border-[#1b2a47]"
-              title="Edit in Modal"
+              className="p-1.5 rounded bg-zinc-800 hover:bg-zinc-750 text-zinc-300 hover:text-white border border-zinc-700 transition-colors"
+              title="Edit in Studio"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded hover:bg-[#16233d] text-slate-400 hover:text-white"
+              className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
               title="Close Inspector"
             >
               <X className="w-4 h-4" />
@@ -154,12 +148,12 @@ export default function InspectorPanel({
 
         {/* Flag Key Title */}
         <div className="flex items-center justify-between">
-          <div className="font-mono font-bold text-white text-xs tracking-tight truncate pr-2" title={flag.key}>
+          <div className="font-mono font-semibold text-zinc-100 text-xs tracking-tight truncate pr-2" title={flag.key}>
             {flag.key}
           </div>
           <button
             onClick={handleCopyKey}
-            className="p-1 rounded text-slate-400 hover:text-teal-300"
+            className="p-1 rounded text-zinc-400 hover:text-white transition-colors"
             title="Copy Flag Key"
           >
             {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -167,7 +161,7 @@ export default function InspectorPanel({
         </div>
 
         {/* Inspector Navigation Tabs */}
-        <div className="grid grid-cols-5 gap-1 bg-[#070b14] p-1 rounded-lg border border-[#16223b] text-[10px] font-semibold">
+        <div className="grid grid-cols-5 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-800 text-[10px] font-medium">
           {[
             { id: 'OVERVIEW', label: 'Overview' },
             { id: 'PLAYGROUND', label: 'Simulator' },
@@ -178,10 +172,10 @@ export default function InspectorPanel({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-1 rounded text-center transition-all ${
+              className={`py-1 rounded text-center transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-teal-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-zinc-800 text-white font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               {tab.label}
@@ -196,66 +190,66 @@ export default function InspectorPanel({
         {activeTab === 'OVERVIEW' && (
           <div className="space-y-4 text-xs">
             {/* Description */}
-            <div className="p-3 rounded-lg bg-[#111a2e] border border-[#1b2a47] space-y-1">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold block">Description</span>
-              <p className="text-slate-200 text-xs leading-relaxed">
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+              <span className="text-zinc-400 text-[10px] uppercase font-semibold block">Description</span>
+              <p className="text-zinc-200 text-xs leading-relaxed">
                 {flag.description || 'No description provided.'}
               </p>
             </div>
 
             {/* Blast Radius & Risk Estimation Card */}
-            <div className="p-3 rounded-lg bg-[#111a2e] border border-[#1b2a47] space-y-2">
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 font-semibold flex items-center space-x-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                <span className="text-zinc-400 font-medium flex items-center space-x-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
                   <span>Estimated Blast Radius</span>
                 </span>
-                <span className="font-mono font-bold text-teal-300">{blastRadiusPercent}%</span>
+                <span className="font-mono font-semibold text-zinc-100">{blastRadiusPercent}%</span>
               </div>
 
-              <div className="w-full bg-[#070b14] h-2 rounded-full overflow-hidden border border-[#16223b]">
+              <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
                 <div
-                  className={`h-full transition-all duration-500 ${
+                  className={`h-full transition-all duration-300 rounded-full ${
                     blastRadiusPercent > 50
                       ? 'bg-amber-500'
                       : blastRadiusPercent > 0
-                      ? 'bg-teal-500'
-                      : 'bg-slate-700'
+                      ? 'bg-blue-500'
+                      : 'bg-zinc-700'
                   }`}
                   style={{ width: `${blastRadiusPercent}%` }}
                 />
               </div>
 
-              <div className="text-[10px] text-slate-400">
+              <div className="text-[10px] text-zinc-400">
                 {hasRollout
-                  ? `Gradual Canary Rollout active via MurmurHash3 (${rolloutRule.rollout.percentage}% sticky bucketing).`
+                  ? `Canary Rollout active via MurmurHash3 (${rolloutRule.rollout.percentage}% sticky bucketing).`
                   : isEnabled
-                  ? 'Flag is ENABLED across targeted audiences.'
-                  : 'Flag is DISABLED (returning fallback default values safely).'}
+                  ? 'Flag is fully enabled across targeted audiences.'
+                  : 'Flag is disabled (serving safe default values).'}
               </div>
             </div>
 
             {/* Attributes Grid */}
             <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="p-2.5 rounded bg-[#111a2e] border border-[#1b2a47]">
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Default Variant</span>
-                <span className="font-mono font-bold text-white text-xs">{flag.default_variant}</span>
+              <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
+                <span className="text-zinc-400 block text-[10px] uppercase font-semibold">Default Variant</span>
+                <span className="font-mono font-semibold text-zinc-100 text-xs">{flag.default_variant}</span>
               </div>
 
-              <div className="p-2.5 rounded bg-[#111a2e] border border-[#1b2a47]">
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Age</span>
-                <span className="font-mono font-bold text-slate-300 text-xs">{flag.age || 'Recent'}</span>
+              <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
+                <span className="text-zinc-400 block text-[10px] uppercase font-semibold">Age</span>
+                <span className="font-mono font-medium text-zinc-300 text-xs">{flag.age || 'Recent'}</span>
               </div>
             </div>
 
             {/* Application Scopes & Tags */}
             <div className="space-y-1.5">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold block">Application Scopes</span>
+              <span className="text-zinc-400 text-[10px] uppercase font-semibold block">Application Scopes</span>
               <div className="flex flex-wrap gap-1.5">
                 {(flag.app_tags || []).map((tag) => (
                   <span
                     key={tag}
-                    className="px-2 py-0.5 rounded bg-[#16223b] border border-[#1b2a47] text-teal-300 font-mono text-[10px]"
+                    className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300 font-mono text-[10px]"
                   >
                     #{tag}
                   </span>
@@ -265,40 +259,40 @@ export default function InspectorPanel({
 
             {/* Prerequisites */}
             {prerequisites.length > 0 && (
-              <div className="p-3 rounded-lg bg-[#090f1c] border border-blue-900/60 space-y-2">
-                <div className="flex items-center space-x-1.5 text-blue-300 text-xs font-semibold">
-                  <Link2 className="w-3.5 h-3.5" />
+              <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                <div className="flex items-center space-x-1.5 text-zinc-300 text-xs font-semibold">
+                  <Link2 className="w-3.5 h-3.5 text-blue-400" />
                   <span>Upstream Prerequisites ({prerequisites.length})</span>
                 </div>
                 <div className="space-y-1.5">
                   {prerequisites.map((p, i) => (
                     <div
                       key={i}
-                      className="p-1.5 rounded bg-[#111a2e] border border-[#1b2a47] font-mono text-[10px] flex items-center justify-between text-slate-300"
+                      className="p-1.5 rounded bg-zinc-900 border border-zinc-800 font-mono text-[10px] flex items-center justify-between text-zinc-300"
                     >
                       <span className="truncate">{p.flagKey}</span>
-                      <span className="text-teal-400 font-bold ml-2">== {p.variant}</span>
+                      <span className="text-blue-400 font-bold ml-2">== {p.variant}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Downstream Dependents */}
+            {/* Downstream Dependents (Agentic Impact) */}
             {dependentsData?.downstream && dependentsData.downstream.length > 0 && (
-              <div className="p-3 rounded-lg bg-[#090f1c] border border-amber-900/60 space-y-2">
-                <div className="flex items-center space-x-1.5 text-amber-300 text-xs font-semibold">
-                  <GitBranch className="w-3.5 h-3.5" />
+              <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                <div className="flex items-center space-x-1.5 text-zinc-300 text-xs font-semibold">
+                  <GitBranch className="w-3.5 h-3.5 text-amber-400" />
                   <span>Downstream Dependents ({dependentsData.downstream.length})</span>
                 </div>
                 <div className="space-y-1.5">
                   {dependentsData.downstream.map((d, i) => (
                     <div
                       key={i}
-                      className="p-1.5 rounded bg-[#111a2e] border border-[#1b2a47] font-mono text-[10px] flex items-center justify-between text-slate-300"
+                      className="p-1.5 rounded bg-zinc-900 border border-zinc-800 font-mono text-[10px] flex items-center justify-between text-zinc-300"
                     >
                       <span className="truncate">{d.flagKey}</span>
-                      <span className="text-amber-400 font-bold ml-2">requires == {d.requiredVariant}</span>
+                      <span className="text-amber-400 font-medium ml-2">requires == {d.requiredVariant}</span>
                     </div>
                   ))}
                 </div>
@@ -315,49 +309,49 @@ export default function InspectorPanel({
         {/* Tab 3: RULES (Rule Hierarchy Tree) */}
         {activeTab === 'RULES' && (
           <div className="space-y-3 text-xs">
-            <div className="text-[11px] text-slate-400 font-medium">
+            <div className="text-[11px] text-zinc-400 font-medium">
               Targeting Rule Hierarchy ({rules.length} custom rules)
             </div>
 
             {rules.length === 0 ? (
-              <div className="p-6 rounded-lg bg-[#111a2e] border border-[#1b2a47] text-center text-slate-400 text-xs">
-                No custom targeting rules defined. All evaluations resolve to default variant "{flag.default_variant}".
+              <div className="p-6 rounded-lg bg-zinc-950 border border-zinc-800 text-center text-zinc-400 text-xs">
+                No custom targeting rules defined. Evaluations resolve to default variant "{flag.default_variant}".
               </div>
             ) : (
               rules.map((rule, idx) => (
                 <div
                   key={rule.id || idx}
-                  className="p-3 rounded-lg bg-[#111a2e] border border-[#1b2a47] space-y-2"
+                  className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-teal-400">
+                    <span className="text-[10px] font-mono font-semibold text-zinc-300">
                       Rule #{idx + 1} (Priority {rule.priority || idx + 1})
                     </span>
-                    <span className="px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 font-mono text-[9px] font-bold uppercase">
-                      Approved
+                    <span className="px-1.5 py-0.2 rounded bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[9px] font-semibold uppercase">
+                      Active
                     </span>
                   </div>
 
                   {/* Conditions */}
-                  <div className="p-2 rounded bg-[#090f1c] border border-[#16223b] font-mono text-[11px] text-slate-300">
+                  <div className="p-2 rounded bg-zinc-900 border border-zinc-800 font-mono text-[11px] text-zinc-300">
                     <pre className="whitespace-pre-wrap">{JSON.stringify(rule.condition, null, 2)}</pre>
                   </div>
 
                   {/* Serve Variant & Rollout */}
-                  <div className="flex items-center justify-between pt-1 border-t border-[#16223b] text-[11px]">
-                    <span className="text-slate-400">Serves Variant:</span>
-                    <span className="font-mono font-bold text-white">{rule.variant}</span>
+                  <div className="flex items-center justify-between pt-1 border-t border-zinc-850 text-[11px]">
+                    <span className="text-zinc-400">Serves Variant:</span>
+                    <span className="font-mono font-semibold text-zinc-100">{rule.variant}</span>
                   </div>
 
                   {rule.rollout && (
                     <div className="space-y-1">
-                      <div className="flex justify-between text-[10px] text-amber-300 font-mono">
+                      <div className="flex justify-between text-[10px] text-zinc-300 font-mono">
                         <span>% Gradual Rollout</span>
                         <span>{rule.rollout.percentage}%</span>
                       </div>
-                      <div className="w-full bg-[#070b14] h-1.5 rounded-full overflow-hidden">
+                      <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
                         <div
-                          className="bg-amber-500 h-full rounded-full"
+                          className="bg-blue-500 h-full rounded-full"
                           style={{ width: `${rule.rollout.percentage}%` }}
                         />
                       </div>
@@ -368,9 +362,9 @@ export default function InspectorPanel({
             )}
 
             {/* Default Fallback Rule */}
-            <div className="p-2.5 rounded-lg bg-[#090f1c] border border-[#16223b] text-[11px] flex items-center justify-between text-slate-400">
+            <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px] flex items-center justify-between text-zinc-400">
               <span>Default Fallback (All other users)</span>
-              <span className="font-mono font-bold text-slate-200">{flag.default_variant}</span>
+              <span className="font-mono font-semibold text-zinc-200">{flag.default_variant}</span>
             </div>
           </div>
         )}
@@ -380,16 +374,16 @@ export default function InspectorPanel({
           <div className="space-y-3 text-xs">
             {flag.type === 'OBJECT' && flag.schema ? (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-slate-400 text-[11px]">
+                <div className="flex items-center justify-between text-zinc-400 text-[11px]">
                   <span>JSON Schema Specification</span>
-                  <span className="font-mono text-[10px] text-teal-400">Draft 2020-12 / Draft 7</span>
+                  <span className="font-mono text-[10px] text-zinc-300">Draft 2020-12 / Draft 7</span>
                 </div>
-                <div className="p-3 rounded-lg bg-[#090f1c] border border-[#16223b] font-mono text-[11px] text-slate-200 max-h-96 overflow-y-auto">
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-200 max-h-96 overflow-y-auto">
                   <pre className="whitespace-pre-wrap">{JSON.stringify(flag.schema, null, 2)}</pre>
                 </div>
               </div>
             ) : (
-              <div className="p-6 rounded-lg bg-[#111a2e] border border-[#1b2a47] text-center text-slate-400 text-xs">
+              <div className="p-6 rounded-lg bg-zinc-950 border border-zinc-800 text-center text-zinc-400 text-xs">
                 {flag.type === 'OBJECT'
                   ? 'No JSON Schema attached to this OBJECT flag.'
                   : `Flags of type "${flag.type}" do not require JSON Schema validation.`}
@@ -401,11 +395,11 @@ export default function InspectorPanel({
         {/* Tab 5: AUDIT */}
         {activeTab === 'AUDIT' && (
           <div className="space-y-3 text-xs">
-            <div className="flex items-center justify-between text-slate-400 text-[11px]">
+            <div className="flex items-center justify-between text-zinc-400 text-[11px]">
               <span>Recent Revisions (Audit Trail)</span>
               <button
                 onClick={() => onOpenHistory(flag.key)}
-                className="text-teal-400 hover:text-teal-300 flex items-center space-x-1"
+                className="text-zinc-300 hover:text-white flex items-center space-x-1"
               >
                 <span>Full Audit</span>
                 <ExternalLink className="w-3 h-3" />
@@ -413,35 +407,35 @@ export default function InspectorPanel({
             </div>
 
             {historyLoading ? (
-              <div className="py-8 text-center text-slate-500 animate-pulse text-xs">
+              <div className="py-8 text-center text-zinc-500 text-xs">
                 Fetching revision diffs...
               </div>
             ) : recentHistory.length === 0 ? (
-              <div className="p-6 rounded-lg bg-[#111a2e] border border-[#1b2a47] text-center text-slate-400 text-xs">
+              <div className="p-6 rounded-lg bg-zinc-950 border border-zinc-800 text-center text-zinc-400 text-xs">
                 No previous revisions recorded.
               </div>
             ) : (
               recentHistory.map((rev) => (
                 <div
                   key={rev.id}
-                  className="p-3 rounded-lg bg-[#111a2e] border border-[#1b2a47] space-y-1.5"
+                  className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-teal-300 text-xs">
+                    <span className="font-mono font-semibold text-zinc-200 text-xs">
                       v{rev.version}
                     </span>
-                    <span className="text-[10px] text-slate-400 flex items-center space-x-1">
-                      <Clock className="w-3 h-3 text-slate-500" />
+                    <span className="text-[10px] text-zinc-400 flex items-center space-x-1">
+                      <Clock className="w-3 h-3 text-zinc-500" />
                       <span>{new Date(rev.created_at).toLocaleDateString()}</span>
                     </span>
                   </div>
 
-                  <div className="text-[11px] text-slate-300">
+                  <div className="text-[11px] text-zinc-300">
                     Author: <strong className="text-white">{rev.author}</strong>
                   </div>
 
                   {rev.change_reason && (
-                    <div className="text-[10px] text-slate-400 italic">
+                    <div className="text-[10px] text-zinc-400 italic">
                       "{rev.change_reason}"
                     </div>
                   )}
@@ -453,16 +447,16 @@ export default function InspectorPanel({
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="p-3 border-t border-[#16223b] bg-[#090f1c] flex items-center justify-between gap-2">
+      <div className="p-3 border-t border-zinc-800 bg-zinc-900 flex items-center justify-between gap-2">
         <button
           onClick={() => onToggleState(flag)}
           disabled={isToggling || flag.lifecycle_state === 'GRADUATED'}
-          className={`flex-1 py-2 px-3 rounded-lg font-semibold text-xs font-mono flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+          className={`flex-1 py-2 px-3 rounded-lg font-medium text-xs font-mono flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${
             flag.lifecycle_state === 'GRADUATED'
-              ? 'bg-blue-950 text-blue-300 border border-blue-800 opacity-60 cursor-not-allowed'
+              ? 'bg-zinc-800 text-zinc-400 border border-zinc-700 opacity-60 cursor-not-allowed'
               : isEnabled
-              ? 'bg-rose-900/50 hover:bg-rose-800 text-rose-200 border border-rose-700'
-              : 'bg-emerald-900/50 hover:bg-emerald-800 text-emerald-200 border border-emerald-700'
+              ? 'bg-zinc-800 hover:bg-zinc-750 text-zinc-200 border border-zinc-700'
+              : 'bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/80'
           }`}
         >
           <span>
@@ -476,7 +470,7 @@ export default function InspectorPanel({
 
         <button
           onClick={() => onOpenEdit(flag)}
-          className="py-2 px-4 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs transition-all shadow-md shadow-teal-950 cursor-pointer"
+          className="py-2 px-4 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-colors shadow-sm cursor-pointer"
         >
           Edit Rules
         </button>

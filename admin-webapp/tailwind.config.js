@@ -8,20 +8,19 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50: '#f0fdfa',
-          500: '#14b8a6',
-          600: '#0d9488',
-          700: '#0f766e',
-          900: '#134e4a',
+          50: '#f4f4f5',
+          500: '#18181b',
+          600: '#09090b',
+          700: '#000000',
         },
         bank: {
-          canvas: '#070b14',
-          surface: '#0c1322',
-          card: '#111a2e',
-          border: '#16223b',
-          borderSubtle: '#1b2a47',
-          hover: '#16233d',
-          gold: '#d97706',
+          canvas: '#09090b',
+          surface: '#121316',
+          card: '#18191f',
+          border: '#27272a',
+          borderSubtle: '#1e1f24',
+          hover: '#20222b',
+          gold: '#f59e0b',
         }
       },
       fontFamily: {
