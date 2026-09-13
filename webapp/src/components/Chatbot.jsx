@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useBooleanFlagValue } from '@openfeature/react-sdk';
 import {
@@ -12,7 +12,8 @@ import {
   DollarSign,
   AlertCircle,
   X,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 import {
   PortfolioCard,
@@ -20,6 +21,80 @@ import {
   WealthInsightsCard,
   FxRatesCard
 } from './GenerativeUiCards';
+
+const STORAGE_KEY = 'apex_copilot_histories_v1';
+
+const PERSONA_CONFIG = {
+  'user-sg-vip': {
+    name: 'Sophia Chen',
+    title: 'Singapore Premier VIP',
+    badge: 'SG • Premier VIP',
+    country: 'SG',
+    greeting: 'Good day, Ms. Chen! Welcome to Apex Singapore Private Wealth. Your dedicated liquidity and wealth modeling facilities are active. With SGD fixed deposit yields at 3.8% and Premier margin lending enabled, how may I assist your portfolio today?'
+  },
+  'user-hk-vip': {
+    name: 'Marcus Leung',
+    title: 'Hong Kong Private Wealth',
+    badge: 'HK • Private Wealth',
+    country: 'HK',
+    greeting: 'Welcome back, Mr. Leung! Apex Hong Kong Private Wealth is at your service. Cross-currency HKD/CNH liquidity facilities, institutional IPO allocations, and structured custody are online. How can I assist with your asset positions today?'
+  },
+  'user-ae-standard': {
+    name: 'Rashid Al-Maktoum',
+    title: 'UAE Commercial Client',
+    badge: 'AE • Commercial Client',
+    country: 'AE',
+    greeting: 'Marhaban, Mr. Al-Maktoum! Welcome to Apex UAE Commercial Custody. Your commercial lending facilities and competitive interbank AED foreign exchange calculators are ready. What accounts would you like to review?'
+  },
+  'user-in-standard': {
+    name: 'Priya Sharma',
+    title: 'India Standard Retail',
+    badge: 'IN • Standard Retail',
+    country: 'IN',
+    greeting: 'Namaste, Priya! Welcome to Apex India Retail Banking. Note: interactive Generative UI widgets are paused under local regulatory compliance review in India; textual advisory and loan guidance remain fully functional. How can I assist you today?'
+  },
+  'user-beta-01': {
+    name: 'Alex Rivera',
+    title: 'Internal Beta Tester',
+    badge: 'SG • Beta Tester',
+    country: 'SG',
+    greeting: 'Welcome back, Alex! Apex Developer & Beta Preview environment active. All experimental generative cards, bleeding-edge flag variants, and relaxed token limits are enabled for your targeting session. What would you like to benchmark?'
+  }
+};
+
+function loadStoredHistories() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    console.warn('Failed to load copilot histories from localStorage:', e);
+    return {};
+  }
+}
+
+function saveStoredHistories(histories) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(histories));
+  } catch (e) {
+    console.warn('Failed to save copilot histories to localStorage:', e);
+  }
+}
+
+function getInitialPersonaGreeting(context) {
+  const key = context?.targetingKey || 'anonymous-user';
+  const config = PERSONA_CONFIG[key];
+  const greetingText = config
+    ? config.greeting
+    : 'Good day! I am Apex Copilot, your AI Financial Assistant. How can I assist you with your accounts or portfolio today?';
+
+  return [
+    {
+      sender: 'bot',
+      text: greetingText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  ];
+}
 
 const QUICK_PROMPTS = [
   { label: '📊 Asset Allocation', text: 'Show my portfolio breakdown' },
@@ -37,38 +112,68 @@ export default function Chatbot({
   const geminiUiFlag = useBooleanFlagValue('feature.chatbot-gemini-ui', false);
   const advancedInsightsFlag = useBooleanFlagValue('feature.advanced-financial-insights', false);
 
-  const [messages, setMessages] = useState([
-    {
-      sender: 'bot',
-      text: `Good day! I am Apex Copilot, your AI Financial Assistant. How can I assist you with your accounts or portfolio today?`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const currentKey = currentContext?.targetingKey || 'anonymous-user';
+  const currentPersona = PERSONA_CONFIG[currentKey] || {
+    name: currentKey,
+    title: 'Client',
+    badge: `${currentContext?.country || 'SG'} • ${currentContext?.userTier || 'STANDARD'}`
+  };
+
+  const [histories, setHistories] = useState(loadStoredHistories);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [lastBffResponse, setLastBffResponse] = useState(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  // Active persona conversation thread
+  const currentThread = (histories[currentKey] && histories[currentKey].length > 0)
+    ? histories[currentKey]
+    : getInitialPersonaGreeting(currentContext);
+
+  // Auto-scroll to bottom of conversation
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [currentKey, currentThread, loading]);
 
   const handleSend = async (userText) => {
     const textToSend = userText || input;
     if (!textToSend.trim()) return;
 
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMessage = {
       sender: 'user',
       text: textToSend,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: now
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const threadWithUser = [...currentThread, userMessage];
+
+    // Optimistically update thread for this persona
+    setHistories((prev) => {
+      const updated = {
+        ...prev,
+        [currentKey]: threadWithUser
+      };
+      saveStoredHistories(updated);
+      return updated;
+    });
+
     setInput('');
     setLoading(true);
 
     try {
-      const res = await axios.post(`${bffUrl}/api/chat`, {
-        message: textToSend,
-        context: currentContext
-      });
-
-      setLastBffResponse(res.data);
+      const res = await axios.post(
+        `${bffUrl}/api/chat`,
+        {
+          message: textToSend,
+          context: currentContext
+        },
+        {
+          headers: {
+            'x-targeting-key': currentKey
+          }
+        }
+      );
 
       const botMessage = {
         sender: 'bot',
@@ -79,7 +184,15 @@ export default function Chatbot({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
-      setMessages((prev) => [...prev, botMessage]);
+      setHistories((prev) => {
+        const existing = prev[currentKey] || threadWithUser;
+        const updated = {
+          ...prev,
+          [currentKey]: [...existing, botMessage]
+        };
+        saveStoredHistories(updated);
+        return updated;
+      });
     } catch (err) {
       console.error('BFF chat error:', err);
       const errorMessage = {
@@ -88,9 +201,43 @@ export default function Chatbot({
         isError: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-      setMessages((prev) => [...prev, errorMessage]);
+
+      setHistories((prev) => {
+        const existing = prev[currentKey] || threadWithUser;
+        const updated = {
+          ...prev,
+          [currentKey]: [...existing, errorMessage]
+        };
+        saveStoredHistories(updated);
+        return updated;
+      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetThread = async () => {
+    setIsResetting(true);
+    const freshGreeting = getInitialPersonaGreeting(currentContext);
+
+    setHistories((prev) => {
+      const updated = {
+        ...prev,
+        [currentKey]: freshGreeting
+      };
+      saveStoredHistories(updated);
+      return updated;
+    });
+
+    try {
+      await axios.delete(`${bffUrl}/api/chat/history`, {
+        params: { targetingKey: currentKey },
+        headers: { 'x-targeting-key': currentKey }
+      });
+    } catch (err) {
+      console.warn('Failed to clear BFF history:', err);
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -98,34 +245,37 @@ export default function Chatbot({
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col h-[650px] overflow-hidden">
       {/* Copilot Header */}
       <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-2xs">
+        <div className="flex items-center space-x-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-2xs flex-shrink-0">
             <Bot className="w-4 h-4" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center space-x-2">
               <h3 className="font-bold text-slate-900 text-xs tracking-tight">Apex Copilot</h3>
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" title="System Online"></span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200 truncate">
+                {currentPersona.badge}
+              </span>
             </div>
-            <p className="text-[10px] text-slate-500">
-              AI Financial Assistant &bull; Cross-Tier Evaluation
+            <p className="text-[10px] text-slate-500 truncate">
+              {currentPersona.name} &bull; {currentContext?.country || 'SG'}
             </p>
           </div>
         </div>
 
-        {/* Flag Status Badges & Close Button */}
-        <div className="flex items-center space-x-2">
+        {/* Flag Status Badges & Controls */}
+        <div className="flex items-center space-x-1.5 flex-shrink-0">
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold hidden sm:inline-block ${
               geminiUiFlag
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : 'bg-slate-100 text-slate-500 border border-slate-200'
             }`}
           >
-            Generative UI: {geminiUiFlag ? 'ON' : 'OFF'}
+            GenUI: {geminiUiFlag ? 'ON' : 'OFF'}
           </span>
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
+            className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold hidden md:inline-block ${
               advancedInsightsFlag
                 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                 : 'bg-slate-100 text-slate-500 border border-slate-200'
@@ -134,10 +284,21 @@ export default function Chatbot({
             Insights: {advancedInsightsFlag ? 'ON' : 'OFF'}
           </span>
 
+          {/* Reset Thread Button */}
+          <button
+            onClick={handleResetThread}
+            disabled={isResetting || loading}
+            className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 transition-colors flex items-center gap-1 text-[11px] disabled:opacity-40"
+            title={`Reset thread for ${currentPersona.name}`}
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
+            <span className="hidden xl:inline text-[10px] font-medium">Reset</span>
+          </button>
+
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
+              className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors"
               title="Close Assistant"
             >
               <X className="w-4 h-4" />
@@ -148,7 +309,7 @@ export default function Chatbot({
 
       {/* Messages Feed */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
-        {messages.map((msg, index) => {
+        {currentThread.map((msg, index) => {
           const isBot = msg.sender === 'bot';
           return (
             <div key={index} className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
@@ -216,6 +377,8 @@ export default function Chatbot({
             <span>Evaluating flags & synthesizing response...</span>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Quick Prompts Bar */}

@@ -57,4 +57,43 @@ describe('WebApp BFF - Chat & OpenFeature Integration', () => {
     expect(res.body.reply).toContain('Total portfolio value');
     expect(res.body.limitsApplied.maxTokens).toBe(500);
   });
+
+  test('GET /api/chat/history and session isolation across distinct personas', async () => {
+    // 1. Check Sophia Chen history (user-sg-vip) has 2 messages from earlier test
+    const sgRes = await request(app)
+      .get('/api/chat/history?targetingKey=user-sg-vip');
+
+    expect(sgRes.statusCode).toBe(200);
+    expect(sgRes.body.targetingKey).toBe('user-sg-vip');
+    expect(sgRes.body.messages.length).toBeGreaterThanOrEqual(2);
+    expect(sgRes.body.messages[0].text).toContain('wealth projection');
+
+    // 2. Check Priya Sharma history (user-in-standard) has its own messages
+    const inRes = await request(app)
+      .get('/api/chat/history?targetingKey=user-in-standard');
+
+    expect(inRes.statusCode).toBe(200);
+    expect(inRes.body.targetingKey).toBe('user-in-standard');
+    expect(inRes.body.messages.length).toBeGreaterThanOrEqual(2);
+    expect(inRes.body.messages[0].text).toContain('portfolio breakdown');
+
+    // 3. Check Marcus Leung (user-hk-vip) has no prior history
+    const hkRes = await request(app)
+      .get('/api/chat/history?targetingKey=user-hk-vip');
+
+    expect(hkRes.statusCode).toBe(200);
+    expect(hkRes.body.messages.length).toBe(0);
+
+    // 4. Delete Priya Sharma's history
+    const delRes = await request(app)
+      .delete('/api/chat/history?targetingKey=user-in-standard');
+
+    expect(delRes.statusCode).toBe(200);
+    expect(delRes.body.messages.length).toBe(0);
+
+    // 5. Verify Sophia's history is still intact!
+    const sgResAfter = await request(app)
+      .get('/api/chat/history?targetingKey=user-sg-vip');
+    expect(sgResAfter.body.messages.length).toBe(sgRes.body.messages.length);
+  });
 });

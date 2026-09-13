@@ -2,6 +2,39 @@ const express = require('express');
 const router = express.Router();
 const { client, trackEvent } = require('../openfeature/client');
 
+// In-memory conversation store keyed by targetingKey
+const sessionHistories = new Map();
+
+/**
+ * GET /api/chat/history
+ * Returns the recorded conversation thread for a given user persona (targetingKey).
+ */
+router.get('/chat/history', (req, res) => {
+  const targetingKey =
+    req.query.targetingKey ||
+    req.headers['x-targeting-key'] ||
+    req.evalContext?.targetingKey ||
+    'anonymous-user';
+
+  const messages = sessionHistories.get(targetingKey) || [];
+  return res.json({ targetingKey, messages });
+});
+
+/**
+ * DELETE /api/chat/history
+ * Clears the conversation thread for a given user persona (targetingKey).
+ */
+router.delete('/chat/history', (req, res) => {
+  const targetingKey =
+    req.query.targetingKey ||
+    req.headers['x-targeting-key'] ||
+    req.evalContext?.targetingKey ||
+    'anonymous-user';
+
+  sessionHistories.delete(targetingKey);
+  return res.json({ success: true, targetingKey, messages: [] });
+});
+
 /**
  * POST /api/chat
  * Handles financial assistant inquiries with dynamic Generative UI payloads governed by OpenFeature.
@@ -12,6 +45,7 @@ router.post('/chat', async (req, res) => {
     const { message = '' } = req.body;
     const lower = message.toLowerCase().trim();
     const evalContext = req.evalContext;
+    const targetingKey = evalContext.targetingKey || 'anonymous-user';
 
     // Safe Defaults
     const defaultGeminiUi = false;
@@ -123,6 +157,29 @@ router.post('/chat', async (req, res) => {
       advancedInsightsEnabled
     });
 
+    // Record to persona-scoped session history in BFF
+    if (!sessionHistories.has(targetingKey)) {
+      sessionHistories.set(targetingKey, []);
+    }
+    const currentThread = sessionHistories.get(targetingKey);
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    currentThread.push({
+      sender: 'user',
+      text: message,
+      timestamp: now
+    });
+    currentThread.push({
+      sender: 'bot',
+      text: textResponse,
+      generativeUi,
+      flagsEvaluated: {
+        geminiUiEnabled,
+        advancedInsightsEnabled
+      },
+      limitsApplied: limitsConfig,
+      timestamp: now
+    });
+
     return res.json({
       reply: textResponse,
       generativeUi,
@@ -132,7 +189,8 @@ router.post('/chat', async (req, res) => {
         advancedInsightsEnabled,
         limitsVariant: limitsConfig
       },
-      evaluationContext: evalContext
+      evaluationContext: evalContext,
+      history: currentThread
     });
   } catch (error) {
     console.error('Chat processing error:', error);
