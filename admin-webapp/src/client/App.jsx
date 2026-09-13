@@ -21,7 +21,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('FLAGS'); // FLAGS, SEGMENTS, SCHEDULED, HYGIENE, ANALYTICS
   const [environment, setEnvironment] = useState('PROD-US-EAST');
   const [selectedFlagKey, setSelectedFlagKey] = useState(null);
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [togglingKey, setTogglingKey] = useState(null);
 
   // Modals state
@@ -29,6 +29,17 @@ export default function App() {
   const [isCreating, setIsCreating] = useState(false);
   const [historyFlagKey, setHistoryFlagKey] = useState(null);
   const [showScheduledModal, setShowScheduledModal] = useState(false);
+
+  // Close inspector on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isInspectorOpen) {
+        setIsInspectorOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isInspectorOpen]);
 
   const fetchFlags = useCallback(async () => {
     try {
@@ -155,8 +166,8 @@ export default function App() {
         onOpenScheduledModal={() => setShowScheduledModal(true)}
       />
 
-      {/* Main 3-Column Cockpit Body */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      {/* Main Operations Body */}
+      <div className="flex-1 flex overflow-hidden min-h-0 relative">
         {/* Left Column: Navigation Rail */}
         <SidebarRail
           activeTab={activeTab}
@@ -164,8 +175,6 @@ export default function App() {
             setActiveTab(tab);
             if (tab !== 'FLAGS') {
               setIsInspectorOpen(false);
-            } else {
-              setIsInspectorOpen(true);
             }
           }}
           flagsCount={flags.length}
@@ -174,13 +183,13 @@ export default function App() {
           sseConnected={sseConnected}
         />
 
-        {/* Center Column: Operations Workbench */}
+        {/* Center Column: Operations Workbench (Fixed width, zero layout shift) */}
         <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-zinc-950">
           {activeTab === 'FLAGS' && (
             <FlagInventory
               flags={flags}
               loading={loading}
-              selectedFlagKey={selectedFlagKey}
+              selectedFlagKey={isInspectorOpen ? selectedFlagKey : null}
               onSelectFlag={(key) => {
                 setSelectedFlagKey(key);
                 setIsInspectorOpen(true);
@@ -238,18 +247,37 @@ export default function App() {
           )}
         </main>
 
-        {/* Right Column: Docked Context Inspector (Active on FLAGS tab) */}
-        {activeTab === 'FLAGS' && isInspectorOpen && (
-          <InspectorPanel
-            flag={selectedFlag}
-            apiUrl={apiUrl}
-            allFlags={flags}
-            onClose={() => setIsInspectorOpen(false)}
-            onOpenEdit={(flag) => setEditingFlag(flag)}
-            onOpenHistory={(key) => setHistoryFlagKey(key)}
-            onToggleState={handleToggleState}
-            isToggling={togglingKey === selectedFlag?.key}
-          />
+        {/* Slide-over Context Inspector Panel (Active on FLAGS tab) */}
+        {activeTab === 'FLAGS' && (
+          <>
+            {/* Backdrop to dismiss slide-over when clicking outside */}
+            <div
+              className={`absolute inset-0 bg-black/30 backdrop-blur-[0.5px] z-20 transition-opacity duration-300 ${
+                isInspectorOpen && selectedFlag ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              onClick={() => setIsInspectorOpen(false)}
+            />
+
+            {/* Slide-over Drawer Panel */}
+            <div
+              className={`absolute top-0 right-0 bottom-0 z-30 w-[480px] xl:w-[540px] max-w-full shadow-2xl transition-transform duration-300 ease-out flex ${
+                isInspectorOpen && selectedFlag ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+              }`}
+            >
+              {selectedFlag && (
+                <InspectorPanel
+                  flag={selectedFlag}
+                  apiUrl={apiUrl}
+                  allFlags={flags}
+                  onClose={() => setIsInspectorOpen(false)}
+                  onOpenEdit={(flag) => setEditingFlag(flag)}
+                  onOpenHistory={(key) => setHistoryFlagKey(key)}
+                  onToggleState={handleToggleState}
+                  isToggling={togglingKey === selectedFlag?.key}
+                />
+              )}
+            </div>
+          </>
         )}
       </div>
 

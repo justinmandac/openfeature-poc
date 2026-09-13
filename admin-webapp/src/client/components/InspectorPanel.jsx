@@ -78,7 +78,7 @@ export default function InspectorPanel({
 
   if (!flag) {
     return (
-      <aside className="w-96 xl:w-[420px] bg-zinc-900 border-l border-zinc-800 flex flex-col items-center justify-center p-6 text-center shrink-0 select-none text-zinc-400">
+      <aside className="w-full bg-zinc-900 border-l border-zinc-800 flex flex-col items-center justify-center p-6 text-center shrink-0 select-none text-zinc-400">
         <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 mb-3">
           <Layers className="w-5 h-5" />
         </div>
@@ -100,7 +100,7 @@ export default function InspectorPanel({
   const blastRadiusPercent = rolloutRule ? rolloutRule.rollout.percentage : isEnabled ? 100 : 0;
 
   return (
-    <aside className="w-96 xl:w-[420px] bg-zinc-900 border-l border-zinc-800 flex flex-col justify-between shrink-0 h-full select-none z-20 text-zinc-200">
+    <aside className="w-full bg-zinc-900 border-l border-zinc-800 flex flex-col justify-between shrink-0 h-full select-none z-20 text-zinc-200">
       {/* Top Inspector Header */}
       <div className="p-4 border-b border-zinc-800 bg-zinc-900 space-y-3">
         <div className="flex items-center justify-between">
