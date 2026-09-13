@@ -15,8 +15,9 @@ const initialContext = {
   environment: 'production'
 };
 
-// Initialize OpenFeature Web Provider
-const provider = new OfrepWebProvider({ baseUrl: 'http://localhost:4000' });
+// Initialize OpenFeature Web Provider (via Central Feature Gateway)
+const gatewayUrl = import.meta.env.VITE_FEATURE_GATEWAY_URL || 'http://localhost:4003';
+const provider = new OfrepWebProvider({ baseUrl: gatewayUrl });
 OpenFeature.setContext(initialContext);
 OpenFeature.setProvider(provider);
 

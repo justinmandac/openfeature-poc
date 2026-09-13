@@ -12,7 +12,7 @@ export class OfrepWebProvider {
   constructor(options = {}) {
     this.metadata = { name: 'OfrepWebProvider' };
     this.events = new OpenFeatureEventEmitter();
-    this.baseUrl = options.baseUrl || 'http://localhost:4000';
+    this.baseUrl = options.baseUrl || 'http://localhost:4003';
     this.sseUrl = `${this.baseUrl}/api/v1/events/flags`;
     this.cachedFlags = new Map(); // flagKey -> OFREP response
     this.currentContext = {};

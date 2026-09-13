@@ -1,0 +1,218 @@
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+const EventSource = require('eventsource');
+
+const apiUrl = process.env.API_URL || 'http://localhost:4000';
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// In-memory connected SSE clients set
+const sseClients = new Set();
+let upstreamEventSource = null;
+let upstreamConnected = false;
+
+/**
+ * Initializes single upstream SSE connection to internal Core API.
+ * Broadcasts events to all connected channel clients (SSE Fanout).
+ */
+function initUpstreamSSE() {
+  if (upstreamEventSource) {
+    upstreamEventSource.close();
+  }
+
+  try {
+    upstreamEventSource = new EventSource(`${apiUrl}/api/v1/events/flags`);
+
+    upstreamEventSource.onopen = () => {
+      upstreamConnected = true;
+      console.log(`[Feature Gateway] Connected to internal Core API SSE stream at ${apiUrl}`);
+    };
+
+    upstreamEventSource.addEventListener('PROVIDER_CONFIGURATION_CHANGED', (event) => {
+      // Fanout event to all connected public clients
+      for (const clientRes of sseClients) {
+        try {
+          clientRes.write(`event: PROVIDER_CONFIGURATION_CHANGED\ndata: ${event.data}\n\n`);
+        } catch (e) {
+          // Handled on close
+        }
+      }
+    });
+
+    upstreamEventSource.onerror = () => {
+      upstreamConnected = false;
+    };
+  } catch (err) {
+    console.warn('[Feature Gateway] Upstream SSE connection setup warning:', err.message);
+  }
+}
+
+function closeUpstreamSSE() {
+  if (upstreamEventSource) {
+    upstreamEventSource.close();
+    upstreamEventSource = null;
+    upstreamConnected = false;
+  }
+}
+
+app.closeUpstreamSSE = closeUpstreamSSE;
+
+// Start upstream connection
+initUpstreamSSE();
+
+/**
+ * Health check endpoint
+ */
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'feature-gateway',
+    role: 'Central Multi-Channel Feature Flag Gateway & Edge OFREP Proxy',
+    upstreamApi: apiUrl,
+    upstreamConnected,
+    activeClientConnections: sseClients.size,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * Gateway Information & Metrics
+ */
+app.get('/api/v1/gateway/info', (req, res) => {
+  res.json({
+    service: 'feature-gateway',
+    version: '1.0.0',
+    specification: 'OFREP v1 (OpenFeature Remote Evaluation Protocol)',
+    supportedChannels: ['web', 'mobile-ios', 'mobile-android', 'partner-api', 'branch-teller'],
+    activeClientConnections: sseClients.size,
+    upstreamConnected
+  });
+});
+
+/**
+ * POST /ofrep/v1/evaluate/flags
+ * Central proxy for bulk OFREP evaluation with ETag 304 caching and context sanitization.
+ */
+app.post('/ofrep/v1/evaluate/flags', async (req, res) => {
+  try {
+    const incomingContext = req.body.context || {};
+    const appTag = req.query.appTag || req.body.appTag || incomingContext.appId;
+
+    // Context Sanitization: Ensure public clients cannot inject internal system overrides
+    const sanitizedContext = { ...incomingContext };
+    delete sanitizedContext.__internal_override;
+    delete sanitizedContext.__bypass_auth;
+
+    // Forward caching headers (If-None-Match)
+    const forwardHeaders = {};
+    if (req.headers['if-none-match']) {
+      forwardHeaders['if-none-match'] = req.headers['if-none-match'];
+    }
+
+    const upstreamRes = await axios.post(
+      `${apiUrl}/ofrep/v1/evaluate/flags`,
+      { context: sanitizedContext, appTag },
+      {
+        headers: forwardHeaders,
+        timeout: 5000,
+        validateStatus: (status) => status === 200 || status === 304 || status === 404
+      }
+    );
+
+    // If Core API reports 304 Not Modified, pass it directly back to client
+    if (upstreamRes.status === 304) {
+      if (upstreamRes.headers.etag) {
+        res.setHeader('ETag', upstreamRes.headers.etag);
+      }
+      return res.status(304).end();
+    }
+
+    if (upstreamRes.headers.etag) {
+      res.setHeader('ETag', upstreamRes.headers.etag);
+    }
+
+    return res.status(upstreamRes.status).json(upstreamRes.data);
+  } catch (error) {
+    console.error('[Feature Gateway] Bulk OFREP proxy error:', error.message);
+    return res.status(502).json({
+      errorCode: 'GATEWAY_ERROR',
+      errorDetails: `Upstream internal Core API error: ${error.response?.data?.errorDetails || error.message}`
+    });
+  }
+});
+
+/**
+ * POST /ofrep/v1/evaluate/flags/:key
+ * Central proxy for single flag evaluation.
+ */
+app.post('/ofrep/v1/evaluate/flags/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const context = req.body.context || {};
+
+    const upstreamRes = await axios.post(
+      `${apiUrl}/ofrep/v1/evaluate/flags/${encodeURIComponent(key)}`,
+      { context },
+      {
+        timeout: 5000,
+        validateStatus: () => true
+      }
+    );
+
+    return res.status(upstreamRes.status).json(upstreamRes.data);
+  } catch (error) {
+    console.error('[Feature Gateway] Single OFREP proxy error:', error.message);
+    return res.status(502).json({
+      errorCode: 'GATEWAY_ERROR',
+      errorDetails: `Upstream internal Core API error: ${error.message}`
+    });
+  }
+});
+
+/**
+ * GET /api/v1/events/flags
+ * Server-Sent Events stream relaying configuration changes to web, mobile, and external clients.
+ */
+app.get('/api/v1/events/flags', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  // Send immediate connection confirmation
+  res.write(`event: connected\ndata: ${JSON.stringify({ status: 'connected', service: 'feature-gateway' })}\n\n`);
+
+  sseClients.add(res);
+
+  // Auto-reconnect upstream if not connected
+  if (!upstreamConnected) {
+    initUpstreamSSE();
+  }
+
+  req.on('close', () => {
+    sseClients.delete(res);
+  });
+});
+
+/**
+ * POST /api/v1/analytics/track
+ * Non-blocking event tracking relay.
+ */
+app.post('/api/v1/analytics/track', async (req, res) => {
+  try {
+    await axios
+      .post(`${apiUrl}/api/v1/analytics/track`, req.body, { timeout: 3000 })
+      .catch((err) => console.warn('[Feature Gateway] Analytics relay warning:', err.message));
+
+    return res.json({ success: true, queued: true });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+module.exports = app;

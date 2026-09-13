@@ -7,15 +7,17 @@
     "api",
     "admin-webapp",
     "webapp-bff",
+    "feature-gateway",
     "webapp"
   ],
   "scripts": {
     "dev:api": "npm --workspace=api run dev",
     "dev:admin": "npm --workspace=admin-webapp run dev",
     "dev:bff": "npm --workspace=webapp-bff run dev",
+    "dev:gateway": "npm --workspace=feature-gateway run dev",
     "dev:webapp": "npm --workspace=webapp run dev",
-    "dev": "concurrently -n \"api,admin,bff,web\" -c \"blue,green,yellow,magenta\" \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:bff\" \"npm run dev:webapp\"",
-    "test": "npm --workspace=api test && npm --workspace=webapp-bff test",
+    "dev": "concurrently -n \"api,admin,bff,gw,web\" -c \"blue,green,yellow,cyan,magenta\" \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:bff\" \"npm run dev:gateway\" \"npm run dev:webapp\"",
+    "test": "npm --workspace=api test && npm --workspace=webapp-bff test && npm --workspace=feature-gateway test",
     "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
