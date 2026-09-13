@@ -147,6 +147,14 @@ export class OfrepWebProvider {
       cached = this.cachedFlags.get(ALIAS_MAP[flagKey]);
     }
 
+    // If alias exists, ensure DISABLED / off state takes precedence across canonical and legacy records
+    if (cached && ALIAS_MAP[flagKey]) {
+      const aliasCached = this.cachedFlags.get(ALIAS_MAP[flagKey]);
+      if (aliasCached && (aliasCached.reason === 'DISABLED' || aliasCached.value === false) && cached.value === true) {
+        cached = aliasCached;
+      }
+    }
+
     if (!cached) {
       return {
         value: defaultValue,

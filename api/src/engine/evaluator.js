@@ -54,12 +54,24 @@ function evaluateFlag(flag, context = {}, options = {}) {
 
   // 3. Check Lifecycle State: DISABLED or ARCHIVED
   if (lifecycleState === 'DISABLED' || lifecycleState === 'ARCHIVED' || flag.state === 'DISABLED') {
-    const fallbackValue = variants[defaultVariant] !== undefined ? variants[defaultVariant] : null;
+    let fallbackVariant = defaultVariant;
+    let fallbackValue = variants[defaultVariant] !== undefined ? variants[defaultVariant] : null;
+
+    // For BOOLEAN flags, a disabled state must always serve false / off
+    if (flag.type === 'BOOLEAN') {
+      if (variants['off'] !== undefined) {
+        fallbackVariant = 'off';
+        fallbackValue = variants['off'];
+      } else {
+        fallbackValue = false;
+      }
+    }
+
     return {
       key: flag.key,
       value: fallbackValue,
       reason: 'DISABLED',
-      variant: defaultVariant,
+      variant: fallbackVariant,
       metadata: {
         flagType: flag.type,
         lifecycleState,

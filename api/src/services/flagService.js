@@ -263,8 +263,8 @@ class FlagService {
       validateAgainstSchema(merged.schema, merged.variants);
     }
 
-    // Validate cross-tenant prerequisites if changed
-    if (Array.isArray(merged.prerequisites) && merged.prerequisites.length > 0) {
+    // Validate cross-tenant prerequisites only if explicitly updated
+    if (updates.prerequisites !== undefined && Array.isArray(updates.prerequisites) && updates.prerequisites.length > 0) {
       const bu = merged.business_unit_id || existing.business_unit_id;
       for (const p of merged.prerequisites) {
         const prereqFlag = await this.getFlagByKey(p.flagKey);
@@ -319,6 +319,39 @@ class FlagService {
     }
 
     await db('flags').where({ key: existing.key }).update(updateRecord);
+
+    // Synchronize to alias flag if one exists (bidirectional canonical <-> legacy alias)
+    const aliasKeys = [];
+    if (existing.legacy_key) {
+      aliasKeys.push(existing.legacy_key);
+    }
+    const matchingAliases = await db('flags')
+      .where({ legacy_key: existing.key })
+      .select('key');
+    for (const row of matchingAliases) {
+      if (row.key !== existing.key && !aliasKeys.includes(row.key)) {
+        aliasKeys.push(row.key);
+      }
+    }
+
+    for (const aKey of aliasKeys) {
+      await db('flags').where({ key: aKey }).update({
+        state: updateRecord.state,
+        lifecycle_state: updateRecord.lifecycle_state,
+        default_variant: updateRecord.default_variant,
+        variants: updateRecord.variants,
+        rules: updateRecord.rules,
+        version: nextVersion,
+        updated_at: updateRecord.updated_at
+      });
+
+      flagEvents.broadcastChange({
+        key: aKey,
+        action: 'UPDATED',
+        version: nextVersion,
+        appTags: merged.app_tags
+      });
+    }
 
     await db('flag_history').insert({
       flag_key: existing.key,
