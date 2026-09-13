@@ -7,7 +7,11 @@ let apiServer;
 
 describe('WebApp BFF - Chat & OpenFeature Integration', () => {
   beforeAll(async () => {
-    apiServer = await start();
+    try {
+      apiServer = await start();
+    } catch (err) {
+      if (err.code !== 'EADDRINUSE') throw err;
+    }
   });
 
   afterAll(async () => {
@@ -39,12 +43,12 @@ describe('WebApp BFF - Chat & OpenFeature Integration', () => {
     expect(res.body.limitsApplied.maxTokens).toBe(2000);
   });
 
-  test('POST /api/chat - US Standard user has Gemini UI disabled and standard limits', async () => {
+  test('POST /api/chat - India Standard user has Gemini UI disabled and standard limits', async () => {
     const res = await request(app)
       .post('/api/chat')
       .send({
         message: 'Show portfolio breakdown',
-        context: { country: 'US', userTier: 'STANDARD', targetingKey: 'user-us-reg' }
+        context: { country: 'IN', userTier: 'STANDARD', targetingKey: 'user-in-standard' }
       });
 
     expect(res.statusCode).toBe(200);

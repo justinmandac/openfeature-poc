@@ -19,7 +19,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [sseConnected, setSseConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('FLAGS'); // FLAGS, SEGMENTS, SCHEDULED, HYGIENE, ANALYTICS
-  const [environment, setEnvironment] = useState('PROD-US-EAST');
+  const [environment, setEnvironment] = useState('PROD-SG-HUB');
   const [selectedFlagKey, setSelectedFlagKey] = useState(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [togglingKey, setTogglingKey] = useState(null);

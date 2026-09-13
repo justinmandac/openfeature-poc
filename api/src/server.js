@@ -29,6 +29,14 @@ async function start() {
       console.log(`⚙️ Admin REST API: http://localhost:${PORT}/api/v1/admin/flags`);
     });
 
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        // Port already in use by active server process
+        return;
+      }
+      console.error('Server error:', err);
+    });
+
     return server;
   } catch (err) {
     console.error('Failed to start OpenFeature Core API:', err);

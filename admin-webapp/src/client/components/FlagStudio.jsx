@@ -1317,7 +1317,7 @@ export default function FlagStudio({
                 </div>
               ) : (
                 <div className="text-[10px] text-zinc-400 leading-relaxed">
-                  Click <strong className="text-zinc-200">Analyze Impact</strong> to simulate this proposed flag across 30+ synthetic banking cohorts (SG, HK, US, PH) and verify that no downstream dependent flags break.
+                  Click <strong className="text-zinc-200">Analyze Impact</strong> to simulate this proposed flag across 30+ synthetic banking cohorts (SG, HK, UAE, India) and verify that no downstream dependent flags break.
                 </div>
               )}
             </div>

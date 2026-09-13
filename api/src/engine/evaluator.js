@@ -219,7 +219,7 @@ function matchesCondition(condition, context, segmentsMap = {}) {
  * Generates a representative synthetic matrix of banking evaluation contexts.
  */
 function generateSyntheticContexts() {
-  const countries = ['SG', 'HK', 'PH', 'US', 'GB'];
+  const countries = ['SG', 'HK', 'AE', 'IN'];
   const userTiers = ['VIP', 'PREMIUM', 'STANDARD'];
   const businessUnits = ['Wealth Management', 'Retail Banking', 'Treasury & Markets'];
   const appIds = ['webapp', 'bff'];

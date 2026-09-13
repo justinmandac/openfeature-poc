@@ -6,8 +6,12 @@ export default function Header({ currentContext }) {
   const personaName =
     currentContext.targetingKey === 'user-sg-vip'
       ? 'Sophia Chen'
-      : currentContext.targetingKey === 'user-us-reg'
-      ? 'James Miller'
+      : currentContext.targetingKey === 'user-hk-vip'
+      ? 'Marcus Leung'
+      : currentContext.targetingKey === 'user-ae-standard'
+      ? 'Rashid Al-Maktoum'
+      : currentContext.targetingKey === 'user-in-standard'
+      ? 'Priya Sharma'
       : currentContext.targetingKey === 'user-beta-01'
       ? 'Alex Rivera'
       : currentContext.targetingKey;

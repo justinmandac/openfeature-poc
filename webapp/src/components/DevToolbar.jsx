@@ -17,8 +17,10 @@ import { OpenFeature, useBooleanFlagValue, useObjectFlagValue } from '@openfeatu
 
 const USERS = [
   { key: 'user-sg-vip', name: 'Sophia Chen (Singapore Premier VIP)', country: 'SG', tier: 'PREMIUM' },
-  { key: 'user-us-reg', name: 'James Miller (US Standard User)', country: 'US', tier: 'STANDARD' },
-  { key: 'user-beta-01', name: 'Alex Rivera (Internal Beta Tester)', country: 'GB', tier: 'STANDARD' }
+  { key: 'user-hk-vip', name: 'Marcus Leung (Hong Kong Private Wealth)', country: 'HK', tier: 'PREMIUM' },
+  { key: 'user-ae-standard', name: 'Rashid Al-Maktoum (UAE Commercial Client)', country: 'AE', tier: 'STANDARD' },
+  { key: 'user-in-standard', name: 'Priya Sharma (India Standard Retail)', country: 'IN', tier: 'STANDARD' },
+  { key: 'user-beta-01', name: 'Alex Rivera (Internal Beta Tester)', country: 'SG', tier: 'STANDARD' }
 ];
 
 export default function DevToolbar({ currentContext, onContextChange }) {
@@ -122,7 +124,7 @@ export default function DevToolbar({ currentContext, onContextChange }) {
                 {/* Country */}
                 <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
                   <span className="text-slate-500 text-[10px] px-1 font-mono">Geo:</span>
-                  {['SG', 'US', 'GB', 'PH'].map((c) => (
+                  {['SG', 'HK', 'AE', 'IN'].map((c) => (
                     <button
                       key={c}
                       onClick={() => handleCountryChange(c)}

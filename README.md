@@ -83,9 +83,9 @@ Runs both the Core API integration suite (13 tests) and WebApp BFF OpenFeature s
 ## Key Enterprise Demonstrations
 
 1. **Targeting Rule Hierarchy**:
-   - In the WebApp context switcher, switch from **Sophia Chen (Singapore Premier)** to **James Miller (US Standard)**.
-   - Observe how the banner switches dynamically from the Singapore yield promotion to the US system maintenance notice.
-   - In the chatbot, observe how Generative UI cards and wealth insights are selectively enabled/disabled according to regional compliance and user tier rules.
+   - In the WebApp evaluation dock, switch between **Sophia Chen (Singapore Premier)**, **Marcus Leung (Hong Kong Premier)**, **Rashid Al-Maktoum (UAE Standard)**, and **Priya Sharma (India Standard)**.
+   - Observe how the banner switches dynamically between Singapore SGD yields, Hong Kong IPO promos, UAE sukuk accounts, and India maintenance notices.
+   - In the chatbot, observe how Generative UI cards, localized currencies (SGD, HKD, AED, INR), and wealth insights are selectively resolved according to regional compliance and user tier rules.
 
 2. **Real-time SSE Live Synchronization**:
    - Open [http://localhost:3000](http://localhost:3000) and [http://localhost:4001](http://localhost:4001) side by side.

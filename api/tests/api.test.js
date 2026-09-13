@@ -61,10 +61,10 @@ describe('OFREP Evaluation Engine - TPO Enhancements', () => {
   });
 
   test('Prerequisite resolution: When prerequisite is NOT met, returns PREREQUISITE_FAILED reason', async () => {
-    // For US user, chatbot-gemini-ui resolves to 'off' (due to US regional rule), failing prerequisite!
+    // For India user, chatbot-gemini-ui resolves to 'off' (due to India regional compliance rule), failing prerequisite!
     const res = await request(app)
       .post('/ofrep/v1/evaluate/flags/feature.advanced-financial-insights')
-      .send({ context: { country: 'US', userTier: 'PREMIUM', targetingKey: 'user-us-vip' } });
+      .send({ context: { country: 'IN', userTier: 'PREMIUM', targetingKey: 'user-in-vip' } });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.value).toBe(false);
@@ -73,10 +73,10 @@ describe('OFREP Evaluation Engine - TPO Enhancements', () => {
   });
 
   test('Reusable Segment resolution: Matches rule using segmentId condition', async () => {
-    // segment-apac-premier requires country: ['SG', 'PH'] and userTier: 'PREMIUM'
+    // segment-apac-premier requires country: ['SG', 'HK', 'AE', 'IN'] and userTier: 'PREMIUM'
     const res = await request(app)
       .post('/ofrep/v1/evaluate/flags/feature.advanced-financial-insights')
-      .send({ context: { country: 'PH', userTier: 'PREMIUM', targetingKey: 'user-ph-vip' } });
+      .send({ context: { country: 'HK', userTier: 'PREMIUM', targetingKey: 'user-hk-vip' } });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.value).toBe(true);

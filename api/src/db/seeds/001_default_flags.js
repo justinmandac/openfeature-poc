@@ -15,10 +15,10 @@ exports.seed = async function(knex) {
   const sampleSegments = [
     {
       id: 'segment-apac-premier',
-      name: 'APAC Premier Wealth Clients',
-      description: 'High net worth clients located in Singapore, Philippines, and APAC hubs with Premier status',
+      name: 'Premier Wealth Clients (SG, HK, UAE, IN)',
+      description: 'High net worth clients located in Singapore, Hong Kong, UAE, and India with Premier status',
       condition: JSON.stringify({
-        country: ['SG', 'PH'],
+        country: ['SG', 'HK', 'AE', 'IN'],
         userTier: 'PREMIUM'
       })
     },
@@ -48,10 +48,10 @@ exports.seed = async function(knex) {
       prerequisites: JSON.stringify([]),
       rules: JSON.stringify([
         {
-          id: 'rule-gemini-us-disabled',
+          id: 'rule-gemini-in-compliance',
           priority: 1,
-          description: 'Temporarily disable Gemini UI in US region for compliance review',
-          condition: { country: 'US' },
+          description: 'Temporarily disable Gemini UI in India region for local regulatory review',
+          condition: { country: 'IN' },
           variant: 'off'
         },
         {
@@ -174,8 +174,8 @@ exports.seed = async function(knex) {
       default_variant: 'global-promo',
       variants: JSON.stringify({
         'global-promo': {
-          title: 'Global Fintech Summit 2026',
-          message: 'Discover next-gen banking architectures powered by OpenFeature.',
+          title: 'Global Wealth Summit 2026',
+          message: 'Discover institutional cross-border banking architectures powered by OpenFeature.',
           urgency: 'info',
           cta: { label: 'Learn More', link: 'https://openfeature.dev' }
         },
@@ -185,9 +185,21 @@ exports.seed = async function(knex) {
           urgency: 'success',
           cta: { label: 'Explore Rates', link: '#rates' }
         },
-        'us-maintenance': {
-          title: '🇺🇸 Scheduled System Update',
-          message: 'ACH instant transfers will pause tonight from 11 PM to 1 AM EST.',
+        'hk-exclusive': {
+          title: '🇭🇰 Hong Kong Private Wealth',
+          message: 'Zero-commission IPO allocations and HKD/CNH currency swaps now live.',
+          urgency: 'success',
+          cta: { label: 'Explore HK Offers', link: '#hk-rates' }
+        },
+        'uae-exclusive': {
+          title: '🇦🇪 UAE Islamic & Private Banking',
+          message: 'Exclusive AED sovereign sukuk offerings and physical gold custody accounts.',
+          urgency: 'info',
+          cta: { label: 'Discover UAE Wealth', link: '#uae-rates' }
+        },
+        'in-notice': {
+          title: '🇮🇳 India Real-Time Settlement Notice',
+          message: 'Scheduled NEFT/RTGS gateway maintenance tonight from 11:30 PM to 1:30 AM IST.',
           urgency: 'warning',
           cta: { label: 'System Status', link: '#status' }
         }
@@ -202,11 +214,25 @@ exports.seed = async function(knex) {
           variant: 'sg-exclusive'
         },
         {
-          id: 'rule-us-banner',
+          id: 'rule-hk-banner',
           priority: 2,
-          description: 'Show maintenance notification for US users',
-          condition: { country: 'US' },
-          variant: 'us-maintenance'
+          description: 'Show HKD wealth management campaign for Hong Kong users',
+          condition: { country: 'HK' },
+          variant: 'hk-exclusive'
+        },
+        {
+          id: 'rule-uae-banner',
+          priority: 3,
+          description: 'Show UAE private banking announcement for UAE users',
+          condition: { country: 'AE' },
+          variant: 'uae-exclusive'
+        },
+        {
+          id: 'rule-in-banner',
+          priority: 4,
+          description: 'Show maintenance and settlement notice for India users',
+          condition: { country: 'IN' },
+          variant: 'in-notice'
         }
       ]),
       schema: JSON.stringify({

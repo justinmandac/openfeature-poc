@@ -92,8 +92,10 @@ export default function SidebarRail({
               onChange={(e) => onEnvironmentChange(e.target.value)}
               className="w-full appearance-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs font-mono text-zinc-100 font-medium focus:outline-none focus:border-zinc-500 cursor-pointer pr-8 hover:bg-zinc-850 transition-colors"
             >
-              <option value="PROD-US-EAST">PROD-US-EAST (Production Primary)</option>
-              <option value="PROD-APAC-01">PROD-APAC-01 (Singapore Region)</option>
+              <option value="PROD-SG-HUB">PROD-SG-HUB (Singapore Hub)</option>
+              <option value="PROD-HK-01">PROD-HK-01 (Hong Kong Region)</option>
+              <option value="PROD-UAE-01">PROD-UAE-01 (UAE Region)</option>
+              <option value="PROD-IN-01">PROD-IN-01 (India Region)</option>
               <option value="UAT-GLOBAL">UAT-GLOBAL (Staging/Validation)</option>
               <option value="DEV-LOCAL">DEV-LOCAL (Sandbox)</option>
             </select>

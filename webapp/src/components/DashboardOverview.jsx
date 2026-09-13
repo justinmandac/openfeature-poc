@@ -129,7 +129,15 @@ export default function DashboardOverview({ currentContext, onOpenAssistant }) {
               <ArrowDownLeft className="w-3.5 h-3.5 mr-0.5" />
               +$3,250.00 this week
             </span>
-            <span className="text-slate-400">SGD / USD Linked</span>
+            <span className="text-slate-400">
+              {currentContext.country === 'SG'
+                ? 'SGD Linked'
+                : currentContext.country === 'HK'
+                ? 'HKD Linked'
+                : currentContext.country === 'AE'
+                ? 'AED Linked'
+                : 'INR Linked'}
+            </span>
           </div>
         </div>
 

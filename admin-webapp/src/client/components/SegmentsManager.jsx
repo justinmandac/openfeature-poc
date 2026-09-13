@@ -12,7 +12,7 @@ export default function SegmentsManager({ apiUrl }) {
   const [id, setId] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [conditionJson, setConditionJson] = useState('{\n  "country": ["SG", "PH"],\n  "userTier": "PREMIUM"\n}');
+  const [conditionJson, setConditionJson] = useState('{\n  "country": ["SG", "HK", "AE", "IN"],\n  "userTier": "PREMIUM"\n}');
   const [error, setError] = useState(null);
 
   const fetchSegments = async () => {
@@ -35,7 +35,7 @@ export default function SegmentsManager({ apiUrl }) {
     setId(`segment-${Date.now().toString().slice(-4)}`);
     setName('');
     setDescription('');
-    setConditionJson('{\n  "country": ["SG", "PH"],\n  "userTier": "PREMIUM"\n}');
+    setConditionJson('{\n  "country": ["SG", "HK", "AE", "IN"],\n  "userTier": "PREMIUM"\n}');
     setError(null);
     setIsCreating(true);
     setEditingSegment(null);

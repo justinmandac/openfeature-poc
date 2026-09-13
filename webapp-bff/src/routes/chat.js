@@ -56,6 +56,7 @@ router.post('/chat', async (req, res) => {
       intentTracked = 'loan_simulator_viewed';
       textResponse = 'I can help you calculate estimated monthly repayments for our Premier Personal Loan:';
       if (geminiUiEnabled) {
+        const currencyMap = { SG: 'SGD', HK: 'HKD', AE: 'AED', IN: 'INR' };
         generativeUi = {
           type: 'loan_calculator',
           title: 'Instant Loan Simulator',
@@ -64,7 +65,7 @@ router.post('/chat', async (req, res) => {
             ratePercent: 3.88,
             tenureMonths: 36,
             monthlyPayment: 1473.45,
-            currency: evalContext.country === 'SG' ? 'SGD' : 'USD'
+            currency: currencyMap[evalContext.country] || 'USD'
           }
         };
       } else {
@@ -94,7 +95,7 @@ router.post('/chat', async (req, res) => {
           textResponse += ' Your projected 5-year net worth is $218,500 with a 14.7% CAGR under balanced growth parameters.';
         }
       } else {
-        textResponse = 'Advanced wealth forecasting is available to Singapore Premier clients and beta participants. Would you like to check your upgrade eligibility?';
+        textResponse = 'Advanced wealth forecasting is available to Premier clients and beta participants in Singapore, Hong Kong, UAE, and India. Would you like to check your upgrade eligibility?';
       }
     } else if (lower.includes('fx') || lower.includes('rate') || lower.includes('exchange')) {
       intentTracked = 'fx_rates_viewed';
@@ -105,9 +106,9 @@ router.post('/chat', async (req, res) => {
           title: 'Live Interbank Rates',
           data: [
             { pair: 'USD/SGD', rate: 1.3425, change: '+0.12%' },
-            { pair: 'EUR/USD', rate: 1.0870, change: '-0.05%' },
-            { pair: 'USD/JPY', rate: 151.20, change: '+0.34%' },
-            { pair: 'GBP/USD', rate: 1.2780, change: '+0.08%' }
+            { pair: 'USD/HKD', rate: 7.8210, change: '-0.02%' },
+            { pair: 'USD/AED', rate: 3.6725, change: '+0.00%' },
+            { pair: 'USD/INR', rate: 83.4500, change: '+0.18%' }
           ]
         };
       }

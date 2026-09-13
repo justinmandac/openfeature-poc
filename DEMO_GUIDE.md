@@ -56,19 +56,24 @@ This starts:
 ---
 
 ### Scenario 2: Context-Aware Targeting & Rule Hierarchy
-**Goal**: Show how OpenFeature evaluates multi-dimensional context (`country`, `userTier`, `targetingKey`) top-to-bottom instead of simple key-value lookups.
+**Goal**: Show how OpenFeature evaluates multi-dimensional context (`country`, `userTier`, `targetingKey`) top-to-bottom instead of simple key-value lookups across Singapore, Hong Kong, UAE, and India.
 
-1. In the **Left Window (WebApp)**, locate the **Evaluation Persona** bar at the top:
+1. In the **Left Window (WebApp)**, locate the **OpenFeature Evaluation Dock** at the bottom:
    - Select **Sophia Chen (Singapore Premier VIP)**:
      - **Country**: `SG`, **Tier**: `PREMIUM`.
      - **Dynamic Banner**: Notice the green banner displays *"🇸🇬 Singapore Wealth Premier: Earn 3.8% p.a. yield on SGD fixed deposits"*.
-     - **Chatbot**: Click prompt *"✨ Wealth Forecast"*. Because she is in the APAC Premier tier, the AI Wealth Trajectory model unlocks with full 5-year compounding charts.
-2. Switch the persona to **James Miller (US Standard User)**:
-   - **Country**: `US`, **Tier**: `STANDARD`.
-   - **Dynamic Banner**: Instantly switches to yellow warning: *"🇺🇸 Scheduled System Update: ACH instant transfers will pause tonight"*.
-   - **Chatbot**: Ask for *"Wealth Forecast"*. Notice the system politely indicates that advanced wealth forecasting is restricted to Premier clients.
-   - Ask for a loan quote: Notice the currency dynamically adapts to `USD`.
-3. Switch persona to **Alex Rivera (Internal Beta Tester)**:
+     - **Chatbot**: Click prompt *"✨ Wealth Forecast"*. Because she is in the Premier tier, the AI Wealth Trajectory model unlocks with full 5-year compounding charts and SGD currency.
+   - Select **Marcus Leung (Hong Kong Private Wealth)**:
+     - **Country**: `HK`, **Tier**: `PREMIUM`.
+     - **Dynamic Banner**: Notice the banner displays *"🇭🇰 Hong Kong Private Wealth: Zero-commission IPO allocations and HKD/CNH currency swaps"*.
+   - Select **Rashid Al-Maktoum (UAE Commercial Client)**:
+     - **Country**: `AE`, **Tier**: `STANDARD`.
+     - **Dynamic Banner**: Displays *"🇦🇪 UAE Islamic & Private Banking: Exclusive AED sovereign sukuk offerings"*.
+   - Select **Priya Sharma (India Standard Retail)**:
+     - **Country**: `IN`, **Tier**: `STANDARD`.
+     - **Dynamic Banner**: Instantly displays yellow maintenance notice: *"🇮🇳 India Real-Time Settlement Notice: Scheduled NEFT/RTGS gateway maintenance"*.
+     - **Chatbot**: Notice that Gemini UI is safely disabled in India for local regulatory review, returning clear text answers without cards.
+2. Switch persona to **Alex Rivera (Internal Beta Tester)**:
    - **Targeting Key**: `user-beta-01`.
    - Even with `STANDARD` tier, the targeting rule explicitly matches his `targetingKey`, unlocking beta insights.
 
@@ -79,11 +84,11 @@ This starts:
 
 1. Notice that `feature.advanced-financial-insights` depends on `feature.chatbot-gemini-ui == 'on'`.
 2. In the **Admin Control Center**:
-   - Notice the blue link icon next to `feature.advanced-financial-insights` indicating it has prerequisites.
+   - Notice the link icon next to `feature.advanced-financial-insights` indicating it has prerequisites.
    - Toggle `feature.chatbot-gemini-ui` to **DISABLED**.
 3. In the **WebApp**:
    - Even for Sophia Chen (Singapore Premier), advanced financial insights will now safely return `false`.
-   - Open the **OpenFeature Live Evaluation Inspector** (expandable panel on the right).
+   - Open the **OpenFeature Live Evaluation Inspector** (slide-over drawer).
    - Observe the resolution reason: `reason: PREREQUISITE_FAILED` with metadata showing `unmetPrerequisite: feature.chatbot-gemini-ui`.
 
 ---
@@ -95,8 +100,8 @@ This starts:
    - Click **Edit** on `feature.chatbot-gemini-ui`.
    - Look at Rule #3: *"50% Percentage Rollout for Standard tier users"*.
 2. In the **WebApp**:
-   - Select **James Miller (US Standard User)** with `STANDARD` tier.
-   - The user's `targetingKey` (`user-us-reg`) is hashed into a bucket from `0..99`.
+   - Select **Rashid Al-Maktoum (UAE Commercial Client)** with `STANDARD` tier.
+   - The user's `targetingKey` (`user-ae-standard`) is hashed into a bucket from `0..99`.
    - If the bucket is `< 50`, the variant is `on`; if `>= 50`, it is `off`.
    - Repeated requests for the same user always yield the exact same bucket and variant (sticky bucketing).
 
@@ -107,7 +112,7 @@ This starts:
 
 1. In the **Admin Control Center**, click the **Audience Segments** tab.
 2. Inspect `segment-apac-premier`:
-   - Matching criteria: `country: ["SG", "PH"]` AND `userTier: "PREMIUM"`.
+   - Matching criteria: `country: ["SG", "HK", "AE", "IN"]` AND `userTier: "PREMIUM"`.
 3. Click **New Segment**:
    - **ID**: `segment-latam-vip`
    - **Name**: `Latin America VIP Cohort`

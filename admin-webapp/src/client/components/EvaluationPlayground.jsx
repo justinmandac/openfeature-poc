@@ -85,27 +85,41 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
             <button
               onClick={() =>
                 applyPreset({
-                  targetingKey: 'retail-ph-user-42',
-                  country: 'PH',
+                  targetingKey: 'hk-wealth-user-88',
+                  country: 'HK',
+                  businessUnit: 'Wealth Management',
+                  userTier: 'PREMIUM'
+                })
+              }
+              className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono transition-colors"
+            >
+              HK Wealth
+            </button>
+            <button
+              onClick={() =>
+                applyPreset({
+                  targetingKey: 'uae-corp-user-12',
+                  country: 'AE',
+                  businessUnit: 'Treasury & Markets',
+                  userTier: 'STANDARD'
+                })
+              }
+              className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono transition-colors"
+            >
+              UAE Corp
+            </button>
+            <button
+              onClick={() =>
+                applyPreset({
+                  targetingKey: 'in-retail-user-42',
+                  country: 'IN',
                   businessUnit: 'Retail Banking',
                   userTier: 'STANDARD'
                 })
               }
               className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono transition-colors"
             >
-              PH Retail
-            </button>
-            <button
-              onClick={() =>
-                applyPreset({
-                  targetingKey: 'anon-visitor-999',
-                  country: 'US',
-                  businessUnit: 'Consumer'
-                })
-              }
-              className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-mono transition-colors"
-            >
-              Anon Default
+              India Retail
             </button>
           </div>
         </div>
