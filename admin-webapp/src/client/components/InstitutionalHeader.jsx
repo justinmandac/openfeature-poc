@@ -6,7 +6,8 @@ import {
   Plus,
   Layers,
   Shield,
-  Command
+  Command,
+  Building2
 } from 'lucide-react';
 
 export default function InstitutionalHeader({
@@ -15,7 +16,10 @@ export default function InstitutionalHeader({
   onRefresh,
   onOpenCreate,
   onOpenScheduledModal,
-  environment
+  environment,
+  businessUnits = [],
+  selectedBu = '',
+  onSelectBu
 }) {
   const isProd = environment?.startsWith('PROD');
 
@@ -39,6 +43,26 @@ export default function InstitutionalHeader({
         >
           <Shield className="w-3 h-3" />
           <span>{environment || 'PROD-US-EAST'}</span>
+        </div>
+
+        {/* Business Unit Tenant Switcher */}
+        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-zinc-950 border border-zinc-800 text-xs">
+          <Building2 className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="text-zinc-400 text-[11px] font-medium hidden lg:inline">BU:</span>
+          <select
+            value={selectedBu}
+            onChange={(e) => onSelectBu?.(e.target.value)}
+            className="bg-transparent text-xs font-semibold text-zinc-100 focus:outline-none cursor-pointer pr-1"
+          >
+            <option value="" className="bg-zinc-900 text-zinc-200">
+              All Business Units
+            </option>
+            {businessUnits.map((bu) => (
+              <option key={bu.id} value={bu.id} className="bg-zinc-900 text-zinc-200">
+                {bu.name} ({bu.flagCount || 0})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

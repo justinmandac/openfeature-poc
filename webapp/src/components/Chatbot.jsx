@@ -108,9 +108,13 @@ export default function Chatbot({
   bffUrl = 'http://localhost:4002',
   onClose
 }) {
-  // Evaluates client-side OpenFeature flags reactively
-  const geminiUiFlag = useBooleanFlagValue('feature.chatbot-gemini-ui', false);
-  const advancedInsightsFlag = useBooleanFlagValue('feature.advanced-financial-insights', false);
+  // Evaluates client-side OpenFeature flags reactively (canonical multi-tenant keys with legacy fallback)
+  const geminiUiFlag =
+    useBooleanFlagValue('retail.copilot.gemini-ui', false) ||
+    useBooleanFlagValue('feature.chatbot-gemini-ui', false);
+  const advancedInsightsFlag =
+    useBooleanFlagValue('wealth.advisory.predictive-insights', false) ||
+    useBooleanFlagValue('feature.advanced-financial-insights', false);
 
   const currentKey = currentContext?.targetingKey || 'anonymous-user';
   const currentPersona = PERSONA_CONFIG[currentKey] || {
@@ -255,6 +259,9 @@ export default function Chatbot({
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="System Online"></span>
               <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
                 {currentContext?.country || currentPersona.country || 'SG'}
+              </span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                Retail BU
               </span>
             </div>
             <p className="text-[11px] text-slate-500 truncate font-medium">

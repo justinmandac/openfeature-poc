@@ -117,4 +117,43 @@ describe('Central Feature Gateway - Multi-Channel OFREP Proxy', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.flags).toBeDefined();
   });
+
+  test('POST /ofrep/v1/evaluate/flags?channel=web proxies omni-channel aggregated evaluation', async () => {
+    const res = await request(app)
+      .post('/ofrep/v1/evaluate/flags?channel=web')
+      .send({
+        context: {
+          targetingKey: 'user-sg-vip',
+          country: 'SG',
+          userTier: 'PREMIUM',
+          channel: 'web'
+        }
+      });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.flags).toBeDefined();
+    const flagKeys = res.body.flags.map((f) => f.key);
+    expect(flagKeys).toContain('retail.copilot.gemini-ui');
+    expect(flagKeys).toContain('wealth.advisory.predictive-insights');
+    expect(flagKeys).toContain('platform.banner.announcement');
+  });
+
+  test('POST /ofrep/v1/evaluate/flags?bu=wealth scopes evaluation strictly to Wealth Business Unit', async () => {
+    const res = await request(app)
+      .post('/ofrep/v1/evaluate/flags?bu=wealth')
+      .send({
+        context: {
+          targetingKey: 'user-sg-vip',
+          country: 'SG',
+          userTier: 'PREMIUM'
+        }
+      });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.flags).toBeDefined();
+    const nonWealth = res.body.flags.filter(
+      (f) => f.key.startsWith('retail.') || f.key.startsWith('cards.')
+    );
+    expect(nonWealth.length).toBe(0);
+  });
 });

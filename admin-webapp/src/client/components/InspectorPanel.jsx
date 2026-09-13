@@ -47,6 +47,7 @@ export default function InspectorPanel({
   flag,
   apiUrl,
   allFlags = [],
+  businessUnits = [],
   onClose,
   onOpenEdit,
   onOpenHistory,
@@ -258,6 +259,41 @@ export default function InspectorPanel({
               <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800">
                 <span className="text-zinc-400 block text-[10px] uppercase font-semibold">Age</span>
                 <span className="font-mono font-medium text-zinc-300 text-xs">{flag.age || 'Recent'}</span>
+              </div>
+            </div>
+
+            {/* Tenancy & Channels Card */}
+            <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2 text-[11px]">
+              <span className="text-zinc-400 text-[10px] uppercase font-semibold block">Tenancy & Channels</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-zinc-500 text-[10px] block">Business Unit</span>
+                  <span className="font-medium text-zinc-200">
+                    {businessUnits.find((b) => b.id === flag.business_unit_id)?.name || flag.business_unit_id || 'Platform'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 text-[10px] block">Owner App</span>
+                  <span className="font-mono text-zinc-300 text-[10px]">{flag.app_id || 'app-platform-portal'}</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-zinc-500 text-[10px] block mb-1">Target Channels</span>
+                <div className="flex flex-wrap gap-1">
+                  {(flag.shared_channels || ['web']).map((ch) => (
+                    <span
+                      key={ch}
+                      className="px-1.5 py-0.5 rounded bg-sky-950/60 border border-sky-800/80 text-sky-300 font-mono text-[9px]"
+                    >
+                      {ch}
+                    </span>
+                  ))}
+                  {flag.is_global && (
+                    <span className="px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-800/80 text-amber-300 font-mono text-[9px]">
+                      Global (All Channels)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

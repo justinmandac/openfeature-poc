@@ -45,6 +45,10 @@ function formatFlagRow(row) {
     prerequisites: typeof row.prerequisites === 'string' ? JSON.parse(row.prerequisites || '[]') : (row.prerequisites || []),
     schema: row.schema && typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema,
     app_tags: typeof row.app_tags === 'string' ? JSON.parse(row.app_tags || '[]') : (row.app_tags || []),
+    shared_channels: typeof row.shared_channels === 'string' ? JSON.parse(row.shared_channels || '["web"]') : (row.shared_channels || ['web']),
+    is_global: Boolean(row.is_global),
+    business_unit_id: row.business_unit_id || 'bu-platform',
+    app_id: row.app_id || 'app-platform-portal',
     lifecycle_state: row.lifecycle_state || row.state || 'ENABLED',
     age: calculateAge(row.created_at)
   };
@@ -54,7 +58,8 @@ function formatSegmentRow(row) {
   if (!row) return null;
   return {
     ...row,
-    condition: typeof row.condition === 'string' ? JSON.parse(row.condition) : row.condition
+    condition: typeof row.condition === 'string' ? JSON.parse(row.condition) : row.condition,
+    isGlobal: !row.business_unit_id
   };
 }
 
@@ -71,6 +76,22 @@ class FlagService {
 
     if (filters.appTag) {
       flags = flags.filter(f => f.app_tags.includes(filters.appTag));
+    }
+    if (filters.businessUnitId || filters.bu) {
+      const buTarget = filters.businessUnitId || filters.bu;
+      flags = flags.filter(
+        f => f.business_unit_id === buTarget || f.business_unit_id === `bu-${buTarget}` || (filters.includeGlobal && f.is_global)
+      );
+    }
+    if (filters.appId) {
+      flags = flags.filter(f => f.app_id === filters.appId || f.app_id === `app-${filters.appId}`);
+    }
+    if (filters.channel) {
+      flags = flags.filter(f => f.is_global || (f.shared_channels && f.shared_channels.includes(filters.channel)));
+    }
+    if (filters.isGlobal !== undefined) {
+      const isGlobalBool = filters.isGlobal === true || filters.isGlobal === 'true';
+      flags = flags.filter(f => f.is_global === isGlobalBool);
     }
     if (filters.type) {
       flags = flags.filter(f => f.type === filters.type);
@@ -90,7 +111,10 @@ class FlagService {
   }
 
   async getFlagByKey(key) {
-    const row = await db('flags').where({ key }).first();
+    let row = await db('flags').where({ key }).first();
+    if (!row) {
+      row = await db('flags').where({ legacy_key: key }).first();
+    }
     return formatFlagRow(row);
   }
 
@@ -102,7 +126,11 @@ class FlagService {
 
     const allFlagsMap = {};
     for (const f of flags) {
-      allFlagsMap[f.key] = formatFlagRow(f);
+      const formatted = formatFlagRow(f);
+      allFlagsMap[f.key] = formatted;
+      if (f.legacy_key) {
+        allFlagsMap[f.legacy_key] = formatted;
+      }
     }
 
     const segmentsMap = {};
@@ -145,8 +173,35 @@ class FlagService {
       throw new Error(`Flag with key "${key}" already exists`);
     }
 
+    const business_unit_id = data.business_unit_id || 'bu-retail';
+    const app_id = data.app_id || 'app-retail-copilot';
+    const shared_channels = data.shared_channels || ['web'];
+    const is_global = Boolean(data.is_global);
+    const legacy_key = data.legacy_key || null;
+
+    // Validate cross-tenant prerequisites if any
+    if (Array.isArray(prerequisites) && prerequisites.length > 0) {
+      for (const p of prerequisites) {
+        const prereqFlag = await this.getFlagByKey(p.flagKey);
+        if (prereqFlag) {
+          const isSameBu = prereqFlag.business_unit_id === business_unit_id;
+          const isPrereqGlobal = prereqFlag.is_global || prereqFlag.business_unit_id === 'bu-platform';
+          if (!isSameBu && !isPrereqGlobal) {
+            throw new Error(
+              `Cross-tenant prerequisite violation: Flag "${key}" (in "${business_unit_id}") cannot depend on flag "${p.flagKey}" belonging to different Business Unit "${prereqFlag.business_unit_id}". Prerequisites must be within the same Business Unit or reference a global platform flag.`
+            );
+          }
+        }
+      }
+    }
+
     const newRecord = {
       key,
+      legacy_key,
+      business_unit_id,
+      app_id,
+      shared_channels: JSON.stringify(shared_channels),
+      is_global,
       type,
       state,
       lifecycle_state,
@@ -166,6 +221,7 @@ class FlagService {
 
     await db('flag_history').insert({
       flag_key: key,
+      business_unit_id,
       version: 1,
       snapshot: JSON.stringify(newRecord),
       diff: JSON.stringify({ action: 'CREATED', state: newRecord }),
@@ -207,8 +263,30 @@ class FlagService {
       validateAgainstSchema(merged.schema, merged.variants);
     }
 
+    // Validate cross-tenant prerequisites if changed
+    if (Array.isArray(merged.prerequisites) && merged.prerequisites.length > 0) {
+      const bu = merged.business_unit_id || existing.business_unit_id;
+      for (const p of merged.prerequisites) {
+        const prereqFlag = await this.getFlagByKey(p.flagKey);
+        if (prereqFlag) {
+          const isSameBu = prereqFlag.business_unit_id === bu;
+          const isPrereqGlobal = prereqFlag.is_global || prereqFlag.business_unit_id === 'bu-platform';
+          if (!isSameBu && !isPrereqGlobal) {
+            throw new Error(
+              `Cross-tenant prerequisite violation: Flag "${key}" (in "${bu}") cannot depend on flag "${p.flagKey}" belonging to different Business Unit "${prereqFlag.business_unit_id}". Prerequisites must be within the same Business Unit or reference a global platform flag.`
+            );
+          }
+        }
+      }
+    }
+
     const nextVersion = (existing.version || 1) + 1;
     const updateRecord = {
+      business_unit_id: merged.business_unit_id || existing.business_unit_id,
+      app_id: merged.app_id || existing.app_id,
+      shared_channels: JSON.stringify(merged.shared_channels || existing.shared_channels),
+      is_global: merged.is_global !== undefined ? Boolean(merged.is_global) : existing.is_global,
+      legacy_key: merged.legacy_key !== undefined ? merged.legacy_key : existing.legacy_key,
       type: merged.type,
       state: merged.state,
       lifecycle_state: merged.lifecycle_state || merged.state,
@@ -231,7 +309,7 @@ class FlagService {
       changes: {}
     };
 
-    for (const prop of ['state', 'lifecycle_state', 'default_variant', 'variants', 'rules', 'prerequisites', 'schema', 'app_tags', 'description']) {
+    for (const prop of ['state', 'lifecycle_state', 'default_variant', 'variants', 'rules', 'prerequisites', 'schema', 'app_tags', 'description', 'business_unit_id', 'app_id', 'shared_channels', 'is_global']) {
       if (JSON.stringify(existing[prop]) !== JSON.stringify(merged[prop])) {
         diff.changes[prop] = {
           from: existing[prop],
@@ -240,12 +318,13 @@ class FlagService {
       }
     }
 
-    await db('flags').where({ key }).update(updateRecord);
+    await db('flags').where({ key: existing.key }).update(updateRecord);
 
     await db('flag_history').insert({
-      flag_key: key,
+      flag_key: existing.key,
+      business_unit_id: updateRecord.business_unit_id,
       version: nextVersion,
-      snapshot: JSON.stringify({ ...updateRecord, key, created_at: existing.created_at }),
+      snapshot: JSON.stringify({ ...updateRecord, key: existing.key, created_at: existing.created_at }),
       diff: JSON.stringify(diff),
       author,
       change_reason: reason,
@@ -253,7 +332,7 @@ class FlagService {
     });
 
     flagEvents.broadcastChange({
-      key,
+      key: existing.key,
       action: 'UPDATED',
       version: nextVersion,
       appTags: merged.app_tags

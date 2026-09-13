@@ -15,8 +15,17 @@ import {
   ShieldAlert,
   Lock,
   RefreshCw,
-  X
+  X,
+  Building2,
+  Tv
 } from 'lucide-react';
+
+const BU_STYLES = {
+  'bu-retail': { label: 'Retail', badge: 'bg-blue-950/70 border-blue-800 text-blue-300' },
+  'bu-wealth': { label: 'Wealth', badge: 'bg-emerald-950/70 border-emerald-800 text-emerald-300' },
+  'bu-cards': { label: 'Cards', badge: 'bg-purple-950/70 border-purple-800 text-purple-300' },
+  'bu-platform': { label: 'Platform', badge: 'bg-zinc-800 border-zinc-700 text-zinc-300' }
+};
 
 export default function FlagInventory({
   flags = [],
@@ -27,7 +36,10 @@ export default function FlagInventory({
   onDelete,
   onOpenEdit,
   onOpenHistory,
-  togglingKey
+  togglingKey,
+  businessUnits = [],
+  selectedBu = '',
+  onSelectBu
 }) {
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState('ALL');
@@ -52,9 +64,15 @@ export default function FlagInventory({
     setSelectedTag('ALL');
     setSelectedType('ALL');
     setSelectedLifecycle('ALL');
+    onSelectBu?.('');
   };
 
-  const isFiltered = search !== '' || selectedTag !== 'ALL' || selectedType !== 'ALL' || selectedLifecycle !== 'ALL';
+  const isFiltered =
+    search !== '' ||
+    selectedTag !== 'ALL' ||
+    selectedType !== 'ALL' ||
+    selectedLifecycle !== 'ALL' ||
+    selectedBu !== '';
 
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-zinc-950 text-zinc-200">
@@ -101,6 +119,44 @@ export default function FlagInventory({
 
         {/* Filter Chips Bar */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Tenant / BU Filter Chips */}
+          <div className="flex items-center space-x-1 bg-zinc-950 p-1 rounded-md border border-zinc-800">
+            <span className="text-zinc-500 px-1 text-[10px] uppercase font-semibold flex items-center space-x-1">
+              <Building2 className="w-3 h-3 text-zinc-400" />
+              <span>Tenant:</span>
+            </span>
+            <button
+              onClick={() => onSelectBu?.('')}
+              className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                selectedBu === ''
+                  ? 'bg-zinc-200 text-zinc-950 font-bold'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              ALL
+            </button>
+            {businessUnits.map((bu) => {
+              const shortName = bu.name
+                .replace(' Banking', '')
+                .replace(' & Asset Management', '')
+                .replace(' & Merchant Services', '')
+                .replace(' Operations', '');
+              return (
+                <button
+                  key={bu.id}
+                  onClick={() => onSelectBu?.(bu.id)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                    selectedBu === bu.id
+                      ? 'bg-zinc-200 text-zinc-950 font-bold'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  {shortName}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Lifecycle Status Chips */}
           <div className="flex items-center space-x-1 bg-zinc-950 p-1 rounded-md border border-zinc-800">
             <span className="text-zinc-500 px-1 text-[10px] uppercase font-semibold">State:</span>
@@ -167,7 +223,7 @@ export default function FlagInventory({
               <th className="py-2.5 px-4">Type</th>
               <th className="py-2.5 px-4">Lifecycle State</th>
               <th className="py-2.5 px-4">Rollout Strategy</th>
-              <th className="py-2.5 px-4">Target Scopes</th>
+              <th className="py-2.5 px-4">Channels & Scopes</th>
               <th className="py-2.5 px-4">Version</th>
               <th className="py-2.5 px-4 text-right">Actions</th>
             </tr>
@@ -199,6 +255,11 @@ export default function FlagInventory({
                 const hasPrereqs = flag.prerequisites && flag.prerequisites.length > 0;
                 const rolloutRule = (flag.rules || []).find((r) => r.rollout);
 
+                const buInfo = BU_STYLES[flag.business_unit_id] || {
+                  label: (flag.business_unit_id || 'Platform').replace('bu-', ''),
+                  badge: 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                };
+
                 // Split namespace for visual clarity
                 const parts = flag.key.split('.');
                 const namespace = parts.length > 1 ? parts[0] : null;
@@ -221,7 +282,24 @@ export default function FlagInventory({
 
                     {/* Flag Key & Badges */}
                     <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                        {/* Tenant BU Chip */}
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold border ${buInfo.badge}`}
+                          title={`Tenant: ${flag.business_unit_id}`}
+                        >
+                          {buInfo.label}
+                        </span>
+
+                        {flag.is_global && (
+                          <span
+                            className="px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800 text-[9px] font-mono font-semibold"
+                            title="Global Enterprise Flag"
+                          >
+                            GLOBAL
+                          </span>
+                        )}
+
                         {namespace && (
                           <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300 font-mono text-[10px] border border-zinc-700">
                             {namespace}
@@ -308,17 +386,34 @@ export default function FlagInventory({
                       )}
                     </td>
 
-                    {/* Scopes */}
+                    {/* Channels & Scopes */}
                     <td className="py-3 px-4">
-                      <div className="flex flex-wrap gap-1">
-                        {(flag.app_tags || []).map((t) => (
-                          <span
-                            key={t}
-                            className="px-1.5 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-[10px]"
-                          >
-                            {t}
-                          </span>
-                        ))}
+                      <div className="flex flex-col gap-1">
+                        {/* Delivery Channels */}
+                        <div className="flex flex-wrap gap-1">
+                          {(flag.shared_channels || ['web']).map((ch) => (
+                            <span
+                              key={ch}
+                              className="px-1.5 py-0.2 rounded bg-sky-950/60 border border-sky-800/80 text-sky-300 font-mono text-[9px]"
+                              title={`Delivery Channel: ${ch}`}
+                            >
+                              {ch}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* App Tags / Scopes */}
+                        <div className="flex flex-wrap gap-1">
+                          {(flag.app_tags || []).map((t) => (
+                            <span
+                              key={t}
+                              className="px-1.5 py-0.2 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono text-[9px]"
+                              title={`Service Scope: ${t}`}
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </td>
 

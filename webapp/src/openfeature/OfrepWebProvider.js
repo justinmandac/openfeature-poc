@@ -81,8 +81,9 @@ export class OfrepWebProvider {
         headers['If-None-Match'] = this.etag;
       }
 
+      const channel = this.currentContext.channel || this.currentContext.channelId || 'web';
       const response = await axios.post(
-        `${this.baseUrl}/ofrep/v1/evaluate/flags`,
+        `${this.baseUrl}/ofrep/v1/evaluate/flags?channel=${encodeURIComponent(channel)}`,
         { context: this.currentContext },
         { headers, timeout: 4000, validateStatus: status => status === 200 || status === 304 }
       );
@@ -126,7 +127,7 @@ export class OfrepWebProvider {
   }
 
   evaluate(flagKey, defaultValue, expectedType) {
-    const cached = this.cachedFlags.get(flagKey);
+    let cached = this.cachedFlags.get(flagKey);
 
     if (!cached) {
       return {

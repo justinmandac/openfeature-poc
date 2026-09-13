@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const flagService = require('../services/flagService');
+const tenantService = require('../services/tenantService');
 const schedulerService = require('../services/schedulerService');
 const analyticsService = require('../services/analyticsService');
 const { simulateBatchImpact } = require('../engine/evaluator');
@@ -11,16 +12,46 @@ const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
 
 /**
+ * GET /api/v1/admin/business-units
+ * Returns all Business Units with child application metadata and flag counts.
+ */
+router.get('/business-units', async (req, res) => {
+  try {
+    const businessUnits = await tenantService.getAllBusinessUnits();
+    res.json({ businessUnits });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/v1/admin/applications
+ * Returns applications, optionally filtered by ?bu=...
+ */
+router.get('/applications', async (req, res) => {
+  try {
+    const { bu, businessUnitId } = req.query;
+    const applications = await tenantService.getAllApplications({ bu: bu || businessUnitId });
+    res.json({ applications });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/v1/admin/flags
  */
 router.get('/flags', async (req, res) => {
   try {
-    const { appTag, type, state, lifecycleState, includeArchived } = req.query;
+    const { appTag, type, state, lifecycleState, includeArchived, bu, businessUnitId, appId, channel } = req.query;
     const flags = await flagService.getAllFlags({
       appTag,
       type,
       state,
       lifecycleState,
+      businessUnitId: bu || businessUnitId,
+      appId,
+      channel,
       includeArchived: includeArchived === 'true'
     });
     res.json({ flags });

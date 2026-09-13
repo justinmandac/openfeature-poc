@@ -10,6 +10,7 @@ const initialContext = {
   targetingKey: 'user-sg-vip',
   country: 'SG',
   userTier: 'PREMIUM',
+  channel: 'web',
   appId: 'webapp',
   appGroup: 'financial-portal',
   environment: 'production'

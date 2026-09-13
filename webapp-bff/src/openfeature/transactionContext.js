@@ -20,6 +20,8 @@ function transactionContextMiddleware(req, res, next) {
     targetingKey: req.headers['x-targeting-key'] || req.body?.context?.targetingKey || 'anonymous-user',
     country: req.headers['x-country'] || req.body?.context?.country || 'SG',
     userTier: req.headers['x-user-tier'] || req.body?.context?.userTier || 'STANDARD',
+    businessUnit: req.headers['x-business-unit'] || req.body?.context?.businessUnit || 'bu-retail',
+    channel: req.headers['x-channel'] || req.body?.context?.channel || 'web',
     appId: 'webapp-bff',
     appGroup: 'financial-portal',
     ip: req.ip,

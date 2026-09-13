@@ -377,6 +377,16 @@ export default function FlagStudio({
   // Form State
   const [key, setKey] = useState(flag?.key || '');
   const [type, setType] = useState(flag?.type || 'BOOLEAN');
+  const [businessUnitId, setBusinessUnitId] = useState(flag?.business_unit_id || 'bu-retail');
+  const [appId, setAppId] = useState(flag?.app_id || 'app-retail-copilot');
+  const [sharedChannels, setSharedChannels] = useState(
+    Array.isArray(flag?.shared_channels)
+      ? flag.shared_channels
+      : typeof flag?.shared_channels === 'string'
+      ? JSON.parse(flag.shared_channels || '["web"]')
+      : ['web']
+  );
+  const [isGlobal, setIsGlobal] = useState(Boolean(flag?.is_global));
   const [lifecycleState, setLifecycleState] = useState(flag?.lifecycle_state || 'ENABLED');
   const [graduatedVariant, setGraduatedVariant] = useState(flag?.graduated_variant || '');
   const [defaultVariant, setDefaultVariant] = useState(
@@ -887,6 +897,10 @@ export default function FlagStudio({
     const payload = {
       key,
       type,
+      business_unit_id: businessUnitId,
+      app_id: appId,
+      shared_channels: sharedChannels,
+      is_global: isGlobal,
       state: lifecycleState === 'ENABLED' || lifecycleState === 'GRADUATED' ? 'ENABLED' : 'DISABLED',
       lifecycle_state: lifecycleState,
       graduated_variant: lifecycleState === 'GRADUATED' ? graduatedVariant || defaultVariant : null,
@@ -1188,18 +1202,34 @@ export default function FlagStudio({
                       <span>Quick Prefixes:</span>
                       <button
                         type="button"
-                        onClick={() => setKey('feature.')}
+                        onClick={() => setKey('retail.copilot.')}
                         className="hover:text-zinc-300 font-mono underline"
                       >
-                        feature.
+                        retail.
                       </button>
                       <span>&bull;</span>
                       <button
                         type="button"
-                        onClick={() => setKey('config.')}
+                        onClick={() => setKey('wealth.advisory.')}
                         className="hover:text-zinc-300 font-mono underline"
                       >
-                        config.
+                        wealth.
+                      </button>
+                      <span>&bull;</span>
+                      <button
+                        type="button"
+                        onClick={() => setKey('cards.rewards.')}
+                        className="hover:text-zinc-300 font-mono underline"
+                      >
+                        cards.
+                      </button>
+                      <span>&bull;</span>
+                      <button
+                        type="button"
+                        onClick={() => setKey('platform.banner.')}
+                        className="hover:text-zinc-300 font-mono underline"
+                      >
+                        platform.
                       </button>
                     </div>
                   </div>
@@ -1223,6 +1253,63 @@ export default function FlagStudio({
                           {t}
                         </button>
                       ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Multi-Tenancy & Delivery Channels Deck */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3.5 bg-zinc-950/60 rounded-xl border border-zinc-800">
+                  {/* Business Unit */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-300">Owning Business Unit</label>
+                    <select
+                      value={businessUnitId}
+                      onChange={(e) => setBusinessUnitId(e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500"
+                    >
+                      <option value="bu-retail">Retail Banking (bu-retail)</option>
+                      <option value="bu-wealth">Wealth & Asset Mgmt (bu-wealth)</option>
+                      <option value="bu-cards">Cards & Merchant (bu-cards)</option>
+                      <option value="bu-platform">Platform Operations (bu-platform)</option>
+                    </select>
+                  </div>
+
+                  {/* Application */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-300">Target Application</label>
+                    <input
+                      type="text"
+                      value={appId}
+                      onChange={(e) => setAppId(e.target.value)}
+                      placeholder="e.g. app-retail-copilot"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-500"
+                    />
+                  </div>
+
+                  {/* Channels */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-300">Target Delivery Channels</label>
+                    <div className="flex items-center space-x-3 pt-1">
+                      {['web', 'mobile', 'partner'].map((ch) => {
+                        const isChecked = sharedChannels.includes(ch);
+                        return (
+                          <label key={ch} className="flex items-center space-x-1.5 text-xs text-zinc-300 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setSharedChannels(sharedChannels.filter((c) => c !== ch));
+                                } else {
+                                  setSharedChannels([...sharedChannels, ch]);
+                                }
+                              }}
+                              className="rounded border-zinc-700 bg-zinc-900 text-blue-600 focus:ring-0"
+                            />
+                            <span className="capitalize">{ch}</span>
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

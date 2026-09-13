@@ -11,7 +11,9 @@ const defaultBanner = {
 
 export default function AnnouncementBanner() {
   // Evaluates dynamic OBJECT flag via OpenFeature React hook
-  const banner = useObjectFlagValue('config.banner-announcement', defaultBanner);
+  const banner =
+    useObjectFlagValue('platform.banner.announcement', null) ||
+    useObjectFlagValue('config.banner-announcement', defaultBanner);
 
   if (!banner || !banner.title) return null;
 
@@ -37,8 +39,11 @@ export default function AnnouncementBanner() {
           ) : (
             <Info className="w-4 h-4 text-blue-600 shrink-0" />
           )}
-          <div className="text-xs">
-            <span className="font-semibold mr-1.5">{banner.title}:</span>
+          <div className="text-xs flex items-center flex-wrap gap-1.5">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-700 font-medium">
+              Platform BU
+            </span>
+            <span className="font-semibold mr-1">{banner.title}:</span>
             <span className="text-slate-700">{banner.message}</span>
           </div>
         </div>

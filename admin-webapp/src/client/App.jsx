@@ -24,6 +24,10 @@ export default function App() {
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [togglingKey, setTogglingKey] = useState(null);
 
+  // Multi-tenancy state
+  const [businessUnits, setBusinessUnits] = useState([]);
+  const [selectedBu, setSelectedBu] = useState('');
+
   // Modals state
   const [editingFlag, setEditingFlag] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -41,10 +45,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isInspectorOpen]);
 
+  const fetchBusinessUnits = useCallback(async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/v1/admin/business-units`);
+      setBusinessUnits(res.data.businessUnits || []);
+    } catch (err) {
+      console.error('Failed to fetch business units:', err);
+    }
+  }, [apiUrl]);
+
   const fetchFlags = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${apiUrl}/api/v1/admin/flags`);
+      const url = selectedBu
+        ? `${apiUrl}/api/v1/admin/flags?bu=${encodeURIComponent(selectedBu)}`
+        : `${apiUrl}/api/v1/admin/flags`;
+      const res = await axios.get(url);
       const list = res.data.flags || [];
       setFlags(list);
 
@@ -60,7 +76,12 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [apiUrl]);
+  }, [apiUrl, selectedBu]);
+
+  // Fetch business units on mount
+  useEffect(() => {
+    fetchBusinessUnits();
+  }, [fetchBusinessUnits]);
 
   // Initial fetch and SSE stream setup
   useEffect(() => {
@@ -77,6 +98,7 @@ export default function App() {
       eventSource.addEventListener('PROVIDER_CONFIGURATION_CHANGED', () => {
         // Reactive auto-refresh when any flag mutation occurs
         fetchFlags();
+        fetchBusinessUnits();
       });
 
       eventSource.onopen = () => {
@@ -95,7 +117,7 @@ export default function App() {
         eventSource.close();
       }
     };
-  }, [apiUrl, fetchFlags]);
+  }, [apiUrl, fetchFlags, fetchBusinessUnits]);
 
   // Safe State Toggle with Enterprise Bank Guardrails
   const handleToggleState = async (flag) => {
@@ -161,9 +183,15 @@ export default function App() {
         flagsCount={flags.length}
         sseConnected={sseConnected}
         environment={environment}
-        onRefresh={fetchFlags}
+        onRefresh={() => {
+          fetchFlags();
+          fetchBusinessUnits();
+        }}
         onOpenCreate={() => setIsCreating(true)}
         onOpenScheduledModal={() => setShowScheduledModal(true)}
+        businessUnits={businessUnits}
+        selectedBu={selectedBu}
+        onSelectBu={setSelectedBu}
       />
 
       {/* Main Operations Body */}
@@ -199,6 +227,9 @@ export default function App() {
               onOpenEdit={(flag) => setEditingFlag(flag)}
               onOpenHistory={(key) => setHistoryFlagKey(key)}
               togglingKey={togglingKey}
+              businessUnits={businessUnits}
+              selectedBu={selectedBu}
+              onSelectBu={setSelectedBu}
             />
           )}
 
@@ -269,6 +300,7 @@ export default function App() {
                   flag={selectedFlag}
                   apiUrl={apiUrl}
                   allFlags={flags}
+                  businessUnits={businessUnits}
                   onClose={() => setIsInspectorOpen(false)}
                   onOpenEdit={(flag) => setEditingFlag(flag)}
                   onOpenHistory={(key) => setHistoryFlagKey(key)}

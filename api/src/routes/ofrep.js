@@ -49,21 +49,26 @@ router.post('/evaluate/flags/:key', async (req, res) => {
 router.post('/evaluate/flags', async (req, res) => {
   try {
     const context = req.body.context || {};
-    const appTag = req.query.appTag || req.body.appTag || context.appId;
+    const appTag = req.query.appTag || req.body.appTag || context.appTag || (context.appId === 'webapp' ? 'webapp' : undefined);
+    const channel = req.query.channel || req.body.channel || context.channelId || context.channel;
+    const bu = req.query.bu || req.body.bu || req.query.businessUnitId || context.businessUnit;
+    const appId = req.query.appId || req.body.appId || context.applicationId || (context.appId && context.appId !== 'webapp' ? context.appId : undefined);
 
     const filters = {};
-    if (appTag) {
-      filters.appTag = appTag;
-    }
+    if (appTag) filters.appTag = appTag;
+    if (channel) filters.channel = channel;
+    if (bu) filters.bu = bu;
+    if (appId) filters.appId = appId;
 
     const [flags, { allFlagsMap, segmentsMap }] = await Promise.all([
       flagService.getAllFlags(filters),
       flagService.getEvaluationContextMaps()
     ]);
 
-    // Compute ETag from flag keys and versions
+    // Compute partitioned ETag from channel, BU, flag keys, versions, and context
+    const partitionKey = `${channel || 'all'}:${bu || 'all'}:${appId || 'all'}`;
     const versionString = flags.map(f => `${f.key}:${f.version}:${f.updated_at}`).join('|');
-    const etag = `"${crypto.createHash('md5').update(versionString + JSON.stringify(context)).digest('hex')}"`;
+    const etag = `"${crypto.createHash('md5').update(partitionKey + versionString + JSON.stringify(context)).digest('hex')}"`;
 
     // Check If-None-Match header for 304 Not Modified
     const clientEtag = req.headers['if-none-match'];

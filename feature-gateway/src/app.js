@@ -88,6 +88,11 @@ app.get('/api/v1/gateway/info', (req, res) => {
     version: '1.0.0',
     specification: 'OFREP v1 (OpenFeature Remote Evaluation Protocol)',
     supportedChannels: ['web', 'mobile-ios', 'mobile-android', 'partner-api', 'branch-teller'],
+    tenancy: {
+      mode: 'Multi-Tenant Omni-Channel Edge Proxy',
+      activeBusinessUnits: ['retail', 'wealth', 'cards', 'platform'],
+      channelPartitionedCaching: true
+    },
     activeClientConnections: sseClients.size,
     upstreamConnected
   });
@@ -95,12 +100,15 @@ app.get('/api/v1/gateway/info', (req, res) => {
 
 /**
  * POST /ofrep/v1/evaluate/flags
- * Central proxy for bulk OFREP evaluation with ETag 304 caching and context sanitization.
+ * Central proxy for bulk OFREP evaluation with channel-aggregated routing, ETag 304 caching and context sanitization.
  */
 app.post('/ofrep/v1/evaluate/flags', async (req, res) => {
   try {
     const incomingContext = req.body.context || {};
-    const appTag = req.query.appTag || req.body.appTag || incomingContext.appId;
+    const appTag = req.query.appTag || req.body.appTag || incomingContext.appTag || (incomingContext.appId === 'webapp' ? 'webapp' : undefined);
+    const channel = req.query.channel || req.body.channel || incomingContext.channelId || incomingContext.channel || 'web';
+    const bu = req.query.bu || req.body.bu || req.query.businessUnitId || incomingContext.businessUnit;
+    const appId = req.query.appId || req.body.appId || incomingContext.applicationId || (incomingContext.appId && incomingContext.appId !== 'webapp' ? incomingContext.appId : undefined);
 
     // Context Sanitization: Ensure public clients cannot inject internal system overrides
     const sanitizedContext = { ...incomingContext };
@@ -113,9 +121,17 @@ app.post('/ofrep/v1/evaluate/flags', async (req, res) => {
       forwardHeaders['if-none-match'] = req.headers['if-none-match'];
     }
 
+    const queryParams = new URLSearchParams();
+    if (appTag) queryParams.set('appTag', appTag);
+    if (channel) queryParams.set('channel', channel);
+    if (bu) queryParams.set('bu', bu);
+    if (appId) queryParams.set('appId', appId);
+
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
     const upstreamRes = await axios.post(
-      `${apiUrl}/ofrep/v1/evaluate/flags`,
-      { context: sanitizedContext, appTag },
+      `${apiUrl}/ofrep/v1/evaluate/flags${queryString}`,
+      { context: sanitizedContext, appTag, channel, bu, appId },
       {
         headers: forwardHeaders,
         timeout: 5000,

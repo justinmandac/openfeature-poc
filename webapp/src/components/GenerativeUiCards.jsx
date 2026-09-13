@@ -22,9 +22,14 @@ export function PortfolioCard({ data, title }) {
           <PieChart className="w-4 h-4 text-blue-600" />
           <span>{title || 'Asset Allocation'}</span>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-          Generative UI Widget
-        </span>
+        <div className="flex items-center space-x-1.5">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+            Wealth BU
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+            Generative UI Widget
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -72,9 +77,14 @@ export function LoanCalculatorCard({ data, title }) {
           <Calculator className="w-4 h-4 text-emerald-600" />
           <span>{title || 'Loan Simulator'}</span>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Interactive Generative UI
-        </span>
+        <div className="flex items-center space-x-1.5">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-medium">
+            Retail BU
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Interactive Generative UI
+          </span>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -135,9 +145,14 @@ export function WealthInsightsCard({ data, title }) {
           <Sparkles className="w-4 h-4 text-indigo-600" />
           <span>{title || 'AI Wealth Projection'}</span>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold">
-          Premier Tier Unlocked
-        </span>
+        <div className="flex items-center space-x-1.5">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+            Wealth BU
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold">
+            Premier Tier Unlocked
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
