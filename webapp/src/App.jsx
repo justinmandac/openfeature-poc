@@ -12,6 +12,7 @@ export default function App() {
     targetingKey: 'user-sg-vip',
     country: 'SG',
     userTier: 'PREMIUM',
+    channel: 'web',
     appId: 'webapp',
     appGroup: 'financial-portal',
     environment: 'production'
@@ -20,7 +21,7 @@ export default function App() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(true);
 
   // Evaluates client-side flag for Copilot
-  const chatbotFlag = useBooleanFlagValue('feature.chatbot-gemini-ui', false);
+  const chatbotFlag = useBooleanFlagValue('retail.copilot.gemini-ui', false);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">

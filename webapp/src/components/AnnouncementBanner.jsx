@@ -11,9 +11,7 @@ const defaultBanner = {
 
 export default function AnnouncementBanner() {
   // Evaluates dynamic OBJECT flag via OpenFeature React hook
-  const banner =
-    useObjectFlagValue('platform.banner.announcement', null) ||
-    useObjectFlagValue('config.banner-announcement', defaultBanner);
+  const banner = useObjectFlagValue('platform.banner.announcement', defaultBanner);
 
   if (!banner || !banner.title) return null;
 

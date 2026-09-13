@@ -8,6 +8,17 @@ import {
 } from '@openfeature/web-sdk';
 import axios from 'axios';
 
+const ALIAS_MAP = {
+  'feature.chatbot-gemini-ui': 'retail.copilot.gemini-ui',
+  'retail.copilot.gemini-ui': 'feature.chatbot-gemini-ui',
+  'feature.advanced-financial-insights': 'wealth.advisory.predictive-insights',
+  'wealth.advisory.predictive-insights': 'feature.advanced-financial-insights',
+  'config.banner-announcement': 'platform.banner.announcement',
+  'platform.banner.announcement': 'config.banner-announcement',
+  'config.chatbot-limits': 'retail.copilot.limits',
+  'retail.copilot.limits': 'config.chatbot-limits'
+};
+
 export class OfrepWebProvider {
   constructor(options = {}) {
     this.metadata = { name: 'OfrepWebProvider' };
@@ -101,6 +112,9 @@ export class OfrepWebProvider {
       this.cachedFlags.clear();
       for (const flag of flags) {
         this.cachedFlags.set(flag.key, flag);
+        if (ALIAS_MAP[flag.key] && !this.cachedFlags.has(ALIAS_MAP[flag.key])) {
+          this.cachedFlags.set(ALIAS_MAP[flag.key], { ...flag, key: ALIAS_MAP[flag.key] });
+        }
       }
     } catch (err) {
       console.warn('[OfrepWebProvider] Failed to bulk fetch flags:', err.message);
@@ -128,6 +142,10 @@ export class OfrepWebProvider {
 
   evaluate(flagKey, defaultValue, expectedType) {
     let cached = this.cachedFlags.get(flagKey);
+
+    if (!cached && ALIAS_MAP[flagKey]) {
+      cached = this.cachedFlags.get(ALIAS_MAP[flagKey]);
+    }
 
     if (!cached) {
       return {

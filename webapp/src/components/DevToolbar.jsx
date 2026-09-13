@@ -27,17 +27,11 @@ export default function DevToolbar({ currentContext, onContextChange }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Live evaluated flag values across Business Units
-  const geminiUi =
-    useBooleanFlagValue('retail.copilot.gemini-ui', false) ||
-    useBooleanFlagValue('feature.chatbot-gemini-ui', false);
-  const advancedInsights =
-    useBooleanFlagValue('wealth.advisory.predictive-insights', false) ||
-    useBooleanFlagValue('feature.advanced-financial-insights', false);
+  const geminiUi = useBooleanFlagValue('retail.copilot.gemini-ui', false);
+  const advancedInsights = useBooleanFlagValue('wealth.advisory.predictive-insights', false);
   const liveSim = useBooleanFlagValue('wealth.portfolio.live-simulation', true);
   const cardsMultiplier = useObjectFlagValue('cards.rewards.travel-multiplier', '1x');
-  const banner =
-    useObjectFlagValue('platform.banner.announcement', null) ||
-    useObjectFlagValue('config.banner-announcement', null);
+  const banner = useObjectFlagValue('platform.banner.announcement', null);
 
   const handleUserSelect = (key) => {
     const selected = USERS.find((u) => u.key === key);

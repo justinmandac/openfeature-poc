@@ -108,13 +108,9 @@ export default function Chatbot({
   bffUrl = 'http://localhost:4002',
   onClose
 }) {
-  // Evaluates client-side OpenFeature flags reactively (canonical multi-tenant keys with legacy fallback)
-  const geminiUiFlag =
-    useBooleanFlagValue('retail.copilot.gemini-ui', false) ||
-    useBooleanFlagValue('feature.chatbot-gemini-ui', false);
-  const advancedInsightsFlag =
-    useBooleanFlagValue('wealth.advisory.predictive-insights', false) ||
-    useBooleanFlagValue('feature.advanced-financial-insights', false);
+  // Evaluates client-side OpenFeature flags reactively
+  const geminiUiFlag = useBooleanFlagValue('retail.copilot.gemini-ui', false);
+  const advancedInsightsFlag = useBooleanFlagValue('wealth.advisory.predictive-insights', false);
 
   const currentKey = currentContext?.targetingKey || 'anonymous-user';
   const currentPersona = PERSONA_CONFIG[currentKey] || {

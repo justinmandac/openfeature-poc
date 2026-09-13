@@ -66,8 +66,8 @@ const TRANSACTIONS = [
 
 export default function DashboardOverview({ currentContext, onOpenAssistant }) {
   // Evaluates advanced insights flag via OpenFeature React SDK
-  const advancedInsightsFlag = useBooleanFlagValue('feature.advanced-financial-insights', false);
-  const chatbotGeminiUi = useBooleanFlagValue('feature.chatbot-gemini-ui', false);
+  const advancedInsightsFlag = useBooleanFlagValue('wealth.advisory.predictive-insights', false);
+  const chatbotGeminiUi = useBooleanFlagValue('retail.copilot.gemini-ui', false);
 
   const isPremier = currentContext.userTier === 'PREMIUM';
 
