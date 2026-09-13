@@ -79,58 +79,80 @@
 ## High-level Solution
 
 ### Architecture Overview
+
+The system architecture employs an **Edge Feature Gateway** (`feature-gateway` on port 4003) to air-gap the internal Core API & Rules Engine (`api:4000`) from untrusted public clients (Web, Mobile, Partner APIs). Public clients consume feature flags via the standard OpenFeature Remote Evaluation Protocol (OFREP v1) proxied through the Gateway with high-throughput ETag HTTP 304 caching, context sanitization, and SSE aggregation/fanout. Internal trusted services (WebApp BFF, Admin Web App) communicate with the Core Platform within the protected network boundary.
+
 ```mermaid
 flowchart TD
 
-    subgraph Consumers ["Consumer Applications"]
-        WEBAPP["Web App (React)"]
-        WEBSDK[["OpenFeature React SDK\n+ Hooks (Logger · Metrics · Enrichment)"]]
-        BFF["BFF (NodeJS + Express)"]
-        BFFSDK[["OpenFeature Node SDK\n+ Hooks + Transaction Context (AsyncLocalStorage)"]]
+    subgraph PublicPerimeter ["Public Client Perimeter (Untrusted)"]
+        WEBAPP["Web App (React :3000)"]
+        WEBSDK[["OpenFeature Web Provider\n+ React SDK"]]
+        MOBILE["Mobile Apps (iOS / Android)\nOpenFeature Mobile SDKs"]
+        PARTNER["Partner Open Banking APIs"]
     end
 
-    subgraph Admin ["Management Tier"]
-        ADMIN["Admin Web App (Express + EJS + React)\nInventory · Segments · Lifecycle · Analytics"]
+    subgraph EdgeGatewayTier ["Edge / Feature Gateway Tier"]
+        GATEWAY["Central Feature Gateway (NodeJS + Express :4003)\n• OFREP v1 RFC Evaluation Proxy\n• ETag 304 Caching Pass-Through\n• Context Sanitization Boundary\n• SSE Stream Aggregation & Client Fanout\n• Telemetry Ingestion Relay"]
     end
 
-    subgraph CorePlatform ["Core Platform Tier"]
-        API["Core API (NodeJS + Express)"]
-        OFREP["OFREP Evaluation Endpoint\n(/ofrep/v1/evaluate/flags)\n+ ETag Caching"]
-        SSE["SSE Event Stream\n(/api/v1/events/flags)"]
-        ADMINAPI["Admin API\n(/api/v1/admin/flags)"]
+    subgraph TrustedDMZ ["Internal DMZ & Application Tier (Trusted)"]
+        BFF["WebApp BFF (NodeJS + Express :4002)\nFinancial Domain Orchestrator"]
+        BFFSDK[["OpenFeature Node SDK\n+ Transaction Context (AsyncLocalStorage)\n+ Evaluation Hooks (Logger · Metrics)"]]
+        ADMIN["Admin Web App (Express + EJS + React :4001)\nDual-Persona Flag Studio · Hygiene · Audit · Scheduled Releases"]
+    end
+
+    subgraph CorePlatform ["Core Platform Tier (Air-Gapped)"]
+        API["Core API & Evaluation Engine (NodeJS + Express :4000)"]
+        OFREP["Internal OFREP Evaluation Engine\n(/ofrep/v1/evaluate/flags)"]
         ENGINE["Targeting & Rule Engine\n(Priority Rules · Segments · % Rollouts · Prerequisites)"]
+        SSE["SSE Broadcast Stream\n(/api/v1/events/flags)"]
+        ADMINAPI["Admin API\n(/api/v1/admin/flags)"]
         SCHEMA["JSON Schema Validator"]
         AUDIT["Audit & History Logger"]
         SCHEDULER["Scheduled Change Processor"]
-        ANALYTICS["Evaluation Analytics\n& Tracking Store"]
+        ANALYTICS["Evaluation Analytics & Telemetry Store"]
         DB[(Database\nSQLite / PostgreSQL via Knex)]
     end
 
-    USER(("User")) --> WEBAPP
-    ADMINUSER(("Admin")) --> ADMIN
+    USER(("Consumer / User")) --> WEBAPP
+    ADMINUSER(("Admin / BizOps / SRE")) --> ADMIN
 
+    %% Public Clients to Gateway
     WEBAPP --> WEBSDK
-    WEBSDK -->|OFREP Evaluation| OFREP
-    WEBSDK -.->|SSE config-changed| SSE
-    WEBSDK -->|"track()"| ANALYTICS
-    WEBAPP -->|REST API| BFF
+    WEBSDK -->|"OFREP Evaluation (POST /ofrep/v1/evaluate/flags)"| GATEWAY
+    GATEWAY -.->|"SSE config-changed Fanout"| WEBSDK
+    WEBSDK -->|"track() Telemetry Relay"| GATEWAY
+    MOBILE -.->|"OFREP RFC Evaluation"| GATEWAY
+    PARTNER -.->|"OFREP RFC Evaluation"| GATEWAY
 
+    %% Public Client to BFF for Domain Logic
+    WEBAPP -->|"Domain Financial APIs (REST)"| BFF
+
+    %% BFF to Core Platform
     BFF --> BFFSDK
-    BFFSDK -->|OFREP Evaluation| OFREP
-    BFFSDK -.->|SSE config-changed| SSE
-    BFFSDK -->|"track()"| ANALYTICS
-    BFF --> API
+    BFFSDK -->|"Internal Evaluation"| OFREP
+    BFFSDK -.->|"SSE config-changed"| SSE
+    BFFSDK -->|"track() Telemetry"| ANALYTICS
+    BFF -->|"Banking Core Logic"| API
 
+    %% Gateway to Core Platform (Air-Gap Proxy)
+    GATEWAY -->|"Proxied OFREP (Sanitized Context + ETag)"| OFREP
+    SSE -.->|"Single Upstream SSE Stream"| GATEWAY
+    GATEWAY -->|"Telemetry Relay"| ANALYTICS
+
+    %% Admin Management
     ADMIN --> ADMINAPI
     ADMINAPI --> SCHEMA
     ADMINAPI --> AUDIT
     ADMINAPI --> DB
 
+    %% Core Engine & Persistence
     OFREP --> ENGINE
     OFREP --> ANALYTICS
     ENGINE --> DB
     AUDIT --> DB
     SCHEDULER --> DB
-    SCHEDULER -->|Emit Event| SSE
+    SCHEDULER -->|"Emit Configuration Event"| SSE
     ANALYTICS --> DB
 ```
