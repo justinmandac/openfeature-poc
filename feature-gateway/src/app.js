@@ -115,17 +115,31 @@ app.post('/ofrep/v1/evaluate/flags', async (req, res) => {
     delete sanitizedContext.__internal_override;
     delete sanitizedContext.__bypass_auth;
 
-    // Forward caching headers (If-None-Match)
+    // Forward caching and attribution telemetry headers
     const forwardHeaders = {};
     if (req.headers['if-none-match']) {
       forwardHeaders['if-none-match'] = req.headers['if-none-match'];
+    }
+
+    const resolvedClientApp = req.headers['x-client-app'] || req.headers['x-caller-app'] || incomingContext.appId || incomingContext.callerApp || appId || appTag || (channel === 'mobile' ? 'android-app' : undefined);
+    if (resolvedClientApp) {
+      forwardHeaders['x-client-app'] = resolvedClientApp;
+    }
+    if (req.headers['x-channel'] || channel) {
+      forwardHeaders['x-channel'] = req.headers['x-channel'] || channel;
+    }
+    if (req.headers['x-actor'] || incomingContext.targetingKey) {
+      forwardHeaders['x-actor'] = req.headers['x-actor'] || incomingContext.targetingKey;
+    }
+    if (req.headers['x-business-unit'] || bu) {
+      forwardHeaders['x-business-unit'] = req.headers['x-business-unit'] || bu;
     }
 
     const queryParams = new URLSearchParams();
     if (appTag) queryParams.set('appTag', appTag);
     if (channel) queryParams.set('channel', channel);
     if (bu) queryParams.set('bu', bu);
-    if (appId) queryParams.set('appId', appId);
+    if (appId || resolvedClientApp) queryParams.set('appId', appId || resolvedClientApp);
 
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
@@ -170,10 +184,31 @@ app.post('/ofrep/v1/evaluate/flags/:key', async (req, res) => {
     const { key } = req.params;
     const context = req.body.context || {};
 
+    const forwardHeaders = {};
+    const resolvedClientApp = req.headers['x-client-app'] || req.headers['x-caller-app'] || context.appId || context.callerApp || req.query.appId || req.query.appTag || (req.headers['x-channel'] === 'mobile' ? 'android-app' : undefined);
+    if (resolvedClientApp) {
+      forwardHeaders['x-client-app'] = resolvedClientApp;
+    }
+    if (req.headers['x-channel'] || context.channel) {
+      forwardHeaders['x-channel'] = req.headers['x-channel'] || context.channel;
+    }
+    if (req.headers['x-actor'] || context.targetingKey) {
+      forwardHeaders['x-actor'] = req.headers['x-actor'] || context.targetingKey;
+    }
+    if (req.headers['x-business-unit'] || context.businessUnit) {
+      forwardHeaders['x-business-unit'] = req.headers['x-business-unit'] || context.businessUnit;
+    }
+
+    const queryParams = new URLSearchParams();
+    if (resolvedClientApp) queryParams.set('appId', resolvedClientApp);
+    if (req.query.appTag) queryParams.set('appTag', req.query.appTag);
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
     const upstreamRes = await axios.post(
-      `${apiUrl}/ofrep/v1/evaluate/flags/${encodeURIComponent(key)}`,
+      `${apiUrl}/ofrep/v1/evaluate/flags/${encodeURIComponent(key)}${queryString}`,
       { context },
       {
+        headers: forwardHeaders,
         timeout: 5000,
         validateStatus: () => true
       }

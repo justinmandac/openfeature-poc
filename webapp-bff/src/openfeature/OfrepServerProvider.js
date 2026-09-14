@@ -63,10 +63,28 @@ class OfrepServerProvider {
 
   async evaluate(flagKey, defaultValue, type, evalContext) {
     try {
+      const appId = evalContext?.appId || 'webapp-bff';
+      const headers = {
+        'X-Client-App': appId,
+        'X-Channel': evalContext?.channel || 'backend'
+      };
+      if (evalContext?.targetingKey || evalContext?.userId) {
+        headers['X-Actor'] = evalContext.targetingKey || evalContext.userId;
+      }
+      if (evalContext?.businessUnit) {
+        headers['X-Business-Unit'] = evalContext.businessUnit;
+      }
+
+      const enrichedContext = {
+        ...(evalContext || {}),
+        appId,
+        callerApp: appId
+      };
+
       const response = await axios.post(
-        `${this.baseUrl}/ofrep/v1/evaluate/flags/${encodeURIComponent(flagKey)}`,
-        { context: evalContext || {} },
-        { timeout: 3000 }
+        `${this.baseUrl}/ofrep/v1/evaluate/flags/${encodeURIComponent(flagKey)}?appTag=bff&appId=${encodeURIComponent(appId)}`,
+        { context: enrichedContext },
+        { headers, timeout: 3000 }
       );
 
       const data = response.data;

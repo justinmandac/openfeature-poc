@@ -37,9 +37,29 @@ export default function EvaluationPlayground({ flag, apiUrl }) {
         throw new Error(`Invalid Context JSON: ${err.message}`);
       }
 
-      const res = await axios.post(`${apiUrl}/ofrep/v1/evaluate/flags/${encodeURIComponent(flag.key)}`, {
-        context: parsedContext
-      });
+      const channel = parsedContext.channel || parsedContext.channelId || 'web';
+      const headers = {
+        'X-Client-App': 'admin-playground',
+        'X-Channel': channel
+      };
+      if (parsedContext.targetingKey || parsedContext.userId) {
+        headers['X-Actor'] = parsedContext.targetingKey || parsedContext.userId;
+      }
+      if (parsedContext.businessUnit) {
+        headers['X-Business-Unit'] = parsedContext.businessUnit;
+      }
+
+      const simulationPayload = {
+        ...parsedContext,
+        appId: parsedContext.appId || 'admin-playground',
+        callerApp: parsedContext.callerApp || 'admin-playground'
+      };
+
+      const res = await axios.post(
+        `${apiUrl}/ofrep/v1/evaluate/flags/${encodeURIComponent(flag.key)}?appTag=admin&appId=admin-playground`,
+        { context: simulationPayload },
+        { headers }
+      );
 
       const elapsed = (performance.now() - startTime).toFixed(1);
       setLatencyMs(elapsed);

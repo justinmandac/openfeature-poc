@@ -23,6 +23,8 @@ function transactionContextMiddleware(req, res, next) {
     businessUnit: req.headers['x-business-unit'] || req.body?.context?.businessUnit || 'bu-retail',
     channel: req.headers['x-channel'] || req.body?.context?.channel || 'web',
     appId: 'webapp-bff',
+    callerApp: 'webapp-bff',
+    appName: 'Apex WebApp BFF',
     appGroup: 'financial-portal',
     ip: req.ip,
     sessionId: req.headers['x-session-id'] || `sess-${Date.now()}`

@@ -134,13 +134,26 @@ class ApexOfrepFeatureProvider(
             if (!contextMap.containsKey("platform")) {
                 contextMap["platform"] = JsonPrimitive("android")
             }
+            if (!contextMap.containsKey("appId")) {
+                contextMap["appId"] = JsonPrimitive("android-app")
+            }
+            if (!contextMap.containsKey("callerApp")) {
+                contextMap["callerApp"] = JsonPrimitive("android-app")
+            }
 
             val requestPayload = OfrepEvaluationRequest(context = contextMap)
             val jsonBody = json.encodeToString(OfrepEvaluationRequest.serializer(), requestPayload)
 
             val requestBuilder = Request.Builder()
-                .url("$baseUrl/ofrep/v1/evaluate/flags?channel=mobile")
+                .url("$baseUrl/ofrep/v1/evaluate/flags?channel=mobile&appTag=android-app&appId=android-app")
+                .header("X-Client-App", "android-app")
+                .header("X-Channel", "mobile")
                 .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
+
+            val actorKey = context?.getTargetingKey()
+            if (!actorKey.isNullOrBlank()) {
+                requestBuilder.header("X-Actor", actorKey)
+            }
 
             lastETag?.let {
                 requestBuilder.header("If-None-Match", it)

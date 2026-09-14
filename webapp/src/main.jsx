@@ -12,6 +12,8 @@ const initialContext = {
   userTier: 'PREMIUM',
   channel: 'web',
   appId: 'webapp',
+  callerApp: 'webapp',
+  appName: 'Apex Private Wealth Portal',
   appGroup: 'financial-portal',
   environment: 'production'
 };

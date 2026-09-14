@@ -54,7 +54,7 @@ object FeatureFlagRepository {
                 val initialContext = createEvaluationContext(initialPersona)
 
                 OpenFeatureAPI.setProvider(provider = provider, initialContext = initialContext)
-                client = OpenFeatureAPI.getClient()
+                client = OpenFeatureAPI.getClient("android-app")
 
                 // Observe provider events to refresh flag states
                 provider.observe().collect { event ->
@@ -125,6 +125,9 @@ object FeatureFlagRepository {
 
     private fun createEvaluationContext(persona: UserPersona): ImmutableContext {
         val attributes = mapOf(
+            "appId" to Value.String("android-app"),
+            "callerApp" to Value.String("android-app"),
+            "appName" to Value.String("Apex Mobile Banking"),
             "userTier" to Value.String(persona.tier),
             "country" to Value.String(persona.country),
             "channel" to Value.String("mobile"),

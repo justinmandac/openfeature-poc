@@ -793,12 +793,62 @@ exports.seed = async function(knex) {
 
   // 6. Seed sample analytics data for demonstration
   const today = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
   await knex('evaluation_metrics').insert([
-    { flag_key: 'retail.copilot.gemini-ui', variant: 'on', reason: 'TARGETING_MATCH', count: 1420, date_bucket: today },
-    { flag_key: 'retail.copilot.gemini-ui', variant: 'off', reason: 'TARGETING_MATCH', count: 320, date_bucket: today },
-    { flag_key: 'wealth.advisory.predictive-insights', variant: 'on', reason: 'TARGETING_MATCH', count: 580, date_bucket: today },
-    { flag_key: 'wealth.advisory.predictive-insights', variant: 'off', reason: 'DEFAULT', count: 1160, date_bucket: today },
-    { flag_key: 'cards.rewards.travel-multiplier', variant: '3x', reason: 'TARGETING_MATCH', count: 750, date_bucket: today },
-    { flag_key: 'platform.banner.announcement', variant: 'sg-exclusive', reason: 'TARGETING_MATCH', count: 890, date_bucket: today }
+    { flag_key: 'retail.copilot.gemini-ui', variant: 'on', reason: 'TARGETING_MATCH', caller_app: 'webapp', channel: 'web', count: 1420, date_bucket: today, last_evaluated_at: nowIso },
+    { flag_key: 'retail.copilot.gemini-ui', variant: 'on', reason: 'TARGETING_MATCH', caller_app: 'android-app', channel: 'mobile', count: 850, date_bucket: today, last_evaluated_at: nowIso },
+    { flag_key: 'retail.copilot.gemini-ui', variant: 'off', reason: 'TARGETING_MATCH', caller_app: 'webapp-bff', channel: 'backend', count: 320, date_bucket: today, last_evaluated_at: nowIso },
+    { flag_key: 'wealth.advisory.predictive-insights', variant: 'on', reason: 'TARGETING_MATCH', caller_app: 'webapp', channel: 'web', count: 580, date_bucket: today, last_evaluated_at: nowIso },
+    { flag_key: 'wealth.advisory.predictive-insights', variant: 'off', reason: 'DEFAULT', caller_app: 'android-app', channel: 'mobile', count: 1160, date_bucket: today, last_evaluated_at: nowIso },
+    { flag_key: 'cards.rewards.travel-multiplier', variant: '3x', reason: 'TARGETING_MATCH', caller_app: 'android-app', channel: 'mobile', count: 750, date_bucket: today, last_evaluated_at: nowIso },
+    { flag_key: 'platform.banner.announcement', variant: 'sg-exclusive', reason: 'TARGETING_MATCH', caller_app: 'webapp', channel: 'web', count: 890, date_bucket: today, last_evaluated_at: nowIso }
+  ]);
+
+  // 7. Seed sample audit logs with caller attribution
+  await knex('evaluation_logs').insert([
+    {
+      flag_key: 'retail.copilot.gemini-ui',
+      variant: 'on',
+      reason: 'TARGETING_MATCH',
+      targeting_key: 'user-sg-vip',
+      caller_app: 'webapp',
+      channel: 'web',
+      business_unit: 'bu-retail',
+      context_snapshot: JSON.stringify({ targetingKey: 'user-sg-vip', userTier: 'PREMIUM', country: 'SG' }),
+      evaluated_at: nowIso
+    },
+    {
+      flag_key: 'retail.copilot.gemini-ui',
+      variant: 'on',
+      reason: 'TARGETING_MATCH',
+      targeting_key: 'android-user-888',
+      caller_app: 'android-app',
+      channel: 'mobile',
+      business_unit: 'bu-retail',
+      context_snapshot: JSON.stringify({ targetingKey: 'android-user-888', channel: 'mobile', platform: 'android' }),
+      evaluated_at: nowIso
+    },
+    {
+      flag_key: 'wealth.advisory.predictive-insights',
+      variant: 'on',
+      reason: 'TARGETING_MATCH',
+      targeting_key: 'user-hk-vip',
+      caller_app: 'webapp',
+      channel: 'web',
+      business_unit: 'bu-wealth',
+      context_snapshot: JSON.stringify({ targetingKey: 'user-hk-vip', userTier: 'PREMIUM', country: 'HK' }),
+      evaluated_at: nowIso
+    },
+    {
+      flag_key: 'cards.rewards.travel-multiplier',
+      variant: '3x',
+      reason: 'TARGETING_MATCH',
+      targeting_key: 'user-sg-vip',
+      caller_app: 'android-app',
+      channel: 'mobile',
+      business_unit: 'bu-cards',
+      context_snapshot: JSON.stringify({ targetingKey: 'user-sg-vip', country: 'SG' }),
+      evaluated_at: nowIso
+    }
   ]);
 };

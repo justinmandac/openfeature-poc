@@ -87,15 +87,25 @@ export class OfrepWebProvider {
 
   async refreshFlags() {
     try {
-      const headers = {};
+      const channel = this.currentContext.channel || this.currentContext.channelId || 'web';
+      const appId = this.currentContext.appId || this.currentContext.callerApp || 'webapp';
+      const headers = {
+        'X-Client-App': appId,
+        'X-Channel': channel
+      };
+      if (this.currentContext.targetingKey || this.currentContext.userId) {
+        headers['X-Actor'] = this.currentContext.targetingKey || this.currentContext.userId;
+      }
+      if (this.currentContext.businessUnit) {
+        headers['X-Business-Unit'] = this.currentContext.businessUnit;
+      }
       if (this.etag) {
         headers['If-None-Match'] = this.etag;
       }
 
-      const channel = this.currentContext.channel || this.currentContext.channelId || 'web';
       const response = await axios.post(
-        `${this.baseUrl}/ofrep/v1/evaluate/flags?channel=${encodeURIComponent(channel)}`,
-        { context: this.currentContext },
+        `${this.baseUrl}/ofrep/v1/evaluate/flags?channel=${encodeURIComponent(channel)}&appTag=${encodeURIComponent(appId)}&appId=${encodeURIComponent(appId)}`,
+        { context: { ...this.currentContext, appId, callerApp: appId } },
         { headers, timeout: 4000, validateStatus: status => status === 200 || status === 304 }
       );
 
