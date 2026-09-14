@@ -45,6 +45,7 @@ export default function FlagInventory({
   const [selectedTag, setSelectedTag] = useState('ALL');
   const [selectedType, setSelectedType] = useState('ALL');
   const [selectedLifecycle, setSelectedLifecycle] = useState('ALL');
+  const [selectedTraffic, setSelectedTraffic] = useState('ALL');
 
   // Filter flags
   const filteredFlags = flags.filter((f) => {
@@ -56,7 +57,13 @@ export default function FlagInventory({
     const matchesType = selectedType === 'ALL' || f.type === selectedType;
     const matchesLifecycle = selectedLifecycle === 'ALL' || f.lifecycle_state === selectedLifecycle;
 
-    return matchesSearch && matchesTag && matchesType && matchesLifecycle;
+    const isDead = (f.total_evaluations === 0 || f.total_evaluations === null || !f.last_evaluated_at);
+    const matchesTraffic =
+      selectedTraffic === 'ALL' ||
+      (selectedTraffic === 'DEAD' && isDead) ||
+      (selectedTraffic === 'ACTIVE' && !isDead);
+
+    return matchesSearch && matchesTag && matchesType && matchesLifecycle && matchesTraffic;
   });
 
   const clearFilters = () => {
@@ -64,6 +71,7 @@ export default function FlagInventory({
     setSelectedTag('ALL');
     setSelectedType('ALL');
     setSelectedLifecycle('ALL');
+    setSelectedTraffic('ALL');
     onSelectBu?.('');
   };
 
@@ -72,6 +80,7 @@ export default function FlagInventory({
     selectedTag !== 'ALL' ||
     selectedType !== 'ALL' ||
     selectedLifecycle !== 'ALL' ||
+    selectedTraffic !== 'ALL' ||
     selectedBu !== '';
 
   return (
@@ -210,6 +219,30 @@ export default function FlagInventory({
               </button>
             ))}
           </div>
+
+          {/* Traffic / Dead Flags Chip */}
+          <div className="flex items-center space-x-1 bg-zinc-950 p-1 rounded-md border border-zinc-800">
+            <span className="text-zinc-500 px-1 text-[10px] uppercase font-semibold">Traffic:</span>
+            {[
+              { id: 'ALL', label: 'ALL' },
+              { id: 'ACTIVE', label: 'ACTIVE' },
+              { id: 'DEAD', label: 'DEAD / ZERO' }
+            ].map((tr) => (
+              <button
+                key={tr.id}
+                onClick={() => setSelectedTraffic(tr.id)}
+                className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                  selectedTraffic === tr.id
+                    ? tr.id === 'DEAD'
+                      ? 'bg-rose-900 text-rose-100 font-bold'
+                      : 'bg-zinc-200 text-zinc-950 font-bold'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {tr.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -222,6 +255,7 @@ export default function FlagInventory({
               <th className="py-2.5 px-4">Flag Key & Namespace</th>
               <th className="py-2.5 px-4">Type</th>
               <th className="py-2.5 px-4">Lifecycle State</th>
+              <th className="py-2.5 px-4">Evaluations</th>
               <th className="py-2.5 px-4">Rollout Strategy</th>
               <th className="py-2.5 px-4">Channels & Scopes</th>
               <th className="py-2.5 px-4">Version</th>
@@ -231,7 +265,7 @@ export default function FlagInventory({
           <tbody className="divide-y divide-zinc-850">
             {loading ? (
               <tr>
-                <td colSpan={8} className="py-16 text-center text-zinc-500">
+                <td colSpan={9} className="py-16 text-center text-zinc-500">
                   <div className="flex flex-col items-center space-y-2">
                     <RefreshCw className="w-5 h-5 animate-spin text-zinc-400" />
                     <span className="font-mono text-xs">Loading flag inventory...</span>
@@ -240,7 +274,7 @@ export default function FlagInventory({
               </tr>
             ) : filteredFlags.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-16 text-center text-zinc-500">
+                <td colSpan={9} className="py-16 text-center text-zinc-500">
                   <div className="flex flex-col items-center space-y-2">
                     <Layers className="w-7 h-7 text-zinc-600" />
                     <span className="font-semibold text-zinc-300">No matching feature flags found</span>
@@ -364,6 +398,33 @@ export default function FlagInventory({
                         />
                         <span>{flag.lifecycle_state || flag.state}</span>
                       </button>
+                    </td>
+
+                    {/* Evaluations & Caller Activity */}
+                    <td className="py-3 px-4">
+                      <div className="flex flex-col space-y-0.5">
+                        <div className="flex items-center space-x-1.5">
+                          <span
+                            className={`px-1.5 py-0.2 rounded font-mono text-[10px] font-semibold border ${
+                              (flag.total_evaluations || 0) > 0
+                                ? 'bg-emerald-950/60 border-emerald-800/80 text-emerald-300'
+                                : 'bg-rose-950/60 border-rose-800/80 text-rose-300'
+                            }`}
+                          >
+                            {(flag.total_evaluations || 0).toLocaleString()} evals
+                          </span>
+                          {(flag.total_evaluations || 0) === 0 && (
+                            <span className="px-1 py-0.2 rounded bg-zinc-800 text-zinc-400 text-[9px] font-mono font-semibold">
+                              DEAD
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[9px] font-mono text-zinc-500">
+                          {flag.last_evaluated_at
+                            ? `Last: ${new Date(flag.last_evaluated_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                            : 'Never evaluated'}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Gradual Rollout Bar */}

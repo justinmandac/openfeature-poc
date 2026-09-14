@@ -295,6 +295,62 @@ router.get('/hygiene', async (req, res) => {
   }
 });
 
+router.get('/hygiene/export', async (req, res) => {
+  try {
+    const flags = await flagService.getAllFlags({ includeArchived: true });
+    const markdownTicket = await analyticsService.generateCleanupSprintTicket(flags);
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="flag-cleanup-sprint-${new Date().toISOString().slice(0, 10)}.md"`);
+    res.send(markdownTicket);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/flags/:key/evaluations', async (req, res) => {
+  try {
+    const details = await analyticsService.getFlagEvaluationDetails(req.params.key);
+    res.json(details);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/flags/:key/archive', async (req, res) => {
+  try {
+    const author = req.headers['x-author'] || req.body.author || 'admin-user';
+    const reason = req.body.reason || 'Archived dead flag during hygiene cleanup';
+    const flag = await flagService.updateFlag(
+      req.params.key,
+      { state: 'DISABLED', lifecycle_state: 'ARCHIVED' },
+      author,
+      reason
+    );
+    res.json({ flag, message: `Flag ${req.params.key} successfully archived.` });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.post('/flags/:key/graduate', async (req, res) => {
+  try {
+    const author = req.headers['x-author'] || req.body.author || 'admin-user';
+    const { variant, reason } = req.body;
+    const flag = await flagService.updateFlag(
+      req.params.key,
+      {
+        lifecycle_state: 'GRADUATED',
+        graduated_variant: variant || undefined
+      },
+      author,
+      reason || `Graduated to variant "${variant || 'default'}" after 100% saturation`
+    );
+    res.json({ flag, message: `Flag ${req.params.key} successfully graduated.` });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // --- Agentic Impact Assessment & Graph Traversal Endpoints ---
 
 /**

@@ -5,6 +5,28 @@ const flagService = require('../services/flagService');
 const { evaluateFlag } = require('../engine/evaluator');
 const analyticsService = require('../services/analyticsService');
 
+function resolveCallerApp(req, context) {
+  const channel = req.headers['x-channel'] || req.query.channel || context.channel || context.channelId;
+  return (
+    req.headers['x-client-app'] ||
+    req.headers['x-caller-app'] ||
+    req.query.appId ||
+    req.query.appTag ||
+    req.body.appId ||
+    req.body.appTag ||
+    context.appId ||
+    context.callerApp ||
+    context.appName ||
+    (context.platform === 'android' || channel === 'mobile' ? 'android-app' : null) ||
+    (channel === 'backend' ? 'webapp-bff' : null) ||
+    (req.headers['referer']?.includes(':3000') || req.headers['origin']?.includes(':3000') ? 'webapp' : null) ||
+    (req.headers['referer']?.includes(':4001') || req.headers['origin']?.includes(':4001') ? 'admin-playground' : null) ||
+    (req.headers['referer']?.includes(':4002') || req.headers['origin']?.includes(':4002') ? 'webapp-bff' : null) ||
+    (channel === 'web' ? 'webapp' : null) ||
+    'unknown'
+  );
+}
+
 /**
  * POST /ofrep/v1/evaluate/flags/:key
  * Single flag evaluation conforming to OFREP specification with telemetry recording.
@@ -29,8 +51,22 @@ router.post('/evaluate/flags/:key', async (req, res) => {
 
     const evaluation = evaluateFlag(flag, context, { allFlagsMap, segmentsMap });
 
-    // Non-blocking telemetry tracking
-    analyticsService.recordEvaluation(key, evaluation.variant, evaluation.reason);
+    // Non-blocking telemetry tracking with caller attribution ("who evaluated what")
+    const callerApp = resolveCallerApp(req, context);
+    const targetingKey = context.targetingKey || context.userId || context.user_id || 'anonymous';
+    const channelName = req.headers['x-channel'] || req.query.channel || context.channel || context.channelId || (callerApp === 'android-app' ? 'mobile' : 'web');
+    const buName = req.query.bu || context.businessUnit || flag.business_unit_id;
+
+    analyticsService.recordEvaluation({
+      flagKey: flag.key,
+      variant: evaluation.variant,
+      reason: evaluation.reason,
+      targetingKey,
+      callerApp,
+      channel: channelName,
+      businessUnit: buName,
+      context
+    });
 
     return res.status(200).json(evaluation);
   } catch (error) {
@@ -78,9 +114,22 @@ router.post('/evaluate/flags', async (req, res) => {
 
     res.setHeader('ETag', etag);
 
+    const callerApp = resolveCallerApp(req, context);
+    const targetingKey = context.targetingKey || context.userId || context.user_id || 'anonymous';
+    const channelName = req.headers['x-channel'] || channel || (callerApp === 'android-app' ? 'mobile' : 'web');
+
     const evaluatedFlags = flags.map(flag => {
       const evalResult = evaluateFlag(flag, context, { allFlagsMap, segmentsMap });
-      analyticsService.recordEvaluation(flag.key, evalResult.variant, evalResult.reason);
+      analyticsService.recordEvaluation({
+        flagKey: flag.key,
+        variant: evalResult.variant,
+        reason: evalResult.reason,
+        targetingKey,
+        callerApp,
+        channel: channelName,
+        businessUnit: bu || flag.business_unit_id,
+        context
+      });
       return evalResult;
     });
 

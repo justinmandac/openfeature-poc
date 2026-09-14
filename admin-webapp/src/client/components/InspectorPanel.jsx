@@ -19,7 +19,9 @@ import {
   ChevronRight,
   Lock,
   GitBranch,
-  ShieldAlert
+  ShieldAlert,
+  Activity,
+  RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
 import EvaluationPlayground from './EvaluationPlayground';
@@ -54,11 +56,31 @@ export default function InspectorPanel({
   onToggleState,
   isToggling = false
 }) {
-  const [activeTab, setActiveTab] = useState('OVERVIEW'); // OVERVIEW, PLAYGROUND, RULES, SCHEMA, AUDIT
+  const [activeTab, setActiveTab] = useState('OVERVIEW'); // OVERVIEW, PLAYGROUND, TELEMETRY, RULES, SCHEMA, AUDIT
   const [copiedKey, setCopiedKey] = useState(false);
   const [recentHistory, setRecentHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [dependentsData, setDependentsData] = useState(null);
+  const [telemetryData, setTelemetryData] = useState(null);
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
+
+  // Fetch telemetry & evaluators when TELEMETRY tab is clicked or flag changes
+  useEffect(() => {
+    if (activeTab === 'TELEMETRY' && flag) {
+      const fetchTelemetry = async () => {
+        try {
+          setTelemetryLoading(true);
+          const res = await axios.get(`${apiUrl}/api/v1/admin/flags/${encodeURIComponent(flag.key)}/evaluations`);
+          setTelemetryData(res.data);
+        } catch (err) {
+          console.error('Failed to load flag evaluations telemetry:', err);
+        } finally {
+          setTelemetryLoading(false);
+        }
+      };
+      fetchTelemetry();
+    }
+  }, [activeTab, flag, apiUrl]);
 
   // Fetch downstream dependents
   useEffect(() => {
@@ -181,10 +203,11 @@ export default function InspectorPanel({
         </div>
 
         {/* Inspector Navigation Tabs */}
-        <div className="grid grid-cols-5 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-800 text-[10px] font-medium">
+        <div className="grid grid-cols-6 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-800 text-[10px] font-medium">
           {[
             { id: 'OVERVIEW', label: 'Overview' },
             { id: 'PLAYGROUND', label: 'Simulator' },
+            { id: 'TELEMETRY', label: 'Telemetry' },
             { id: 'RULES', label: 'Rules' },
             { id: 'SCHEMA', label: 'Schema' },
             { id: 'AUDIT', label: 'Audit' },
@@ -359,6 +382,164 @@ export default function InspectorPanel({
         {/* Tab 2: PLAYGROUND (Evaluation Simulator) */}
         {activeTab === 'PLAYGROUND' && (
           <EvaluationPlayground flag={flag} apiUrl={apiUrl} />
+        )}
+
+        {/* Tab: TELEMETRY (Live Evaluations & Caller Attribution) */}
+        {activeTab === 'TELEMETRY' && (
+          <div className="space-y-4 text-xs">
+            {/* Header metrics card */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+                <span className="text-zinc-400 text-[10px] uppercase font-semibold block">Total Evaluations</span>
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono font-bold text-lg text-white">
+                    {(telemetryData?.totalEvaluations ?? flag.total_evaluations ?? 0).toLocaleString()}
+                  </span>
+                  {(telemetryData?.totalEvaluations ?? flag.total_evaluations ?? 0) === 0 ? (
+                    <span className="px-1.5 py-0.2 rounded bg-rose-950/80 border border-rose-800 text-rose-300 text-[9px] font-mono">
+                      DEAD
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-[9px] font-mono">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-1">
+                <span className="text-zinc-400 text-[10px] uppercase font-semibold block">Last Evaluated</span>
+                <span className="font-mono text-zinc-300 text-xs block truncate" title={telemetryData?.lastEvaluatedAt || flag.last_evaluated_at || ''}>
+                  {telemetryData?.lastEvaluatedAt || flag.last_evaluated_at
+                    ? new Date(telemetryData?.lastEvaluatedAt || flag.last_evaluated_at).toLocaleString()
+                    : 'Never'}
+                </span>
+              </div>
+            </div>
+
+            {telemetryLoading ? (
+              <div className="py-8 text-center text-zinc-500 font-mono text-xs animate-pulse">
+                Fetching evaluation telemetry & caller attribution...
+              </div>
+            ) : (
+              <>
+                {/* Caller Apps Breakdown */}
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400 text-[10px] uppercase font-semibold">Caller Applications</span>
+                    <span className="text-zinc-500 font-mono text-[10px]">
+                      {telemetryData?.callerApps?.length || 0} callers
+                    </span>
+                  </div>
+
+                  {(!telemetryData?.callerApps || telemetryData.callerApps.length === 0) ? (
+                    <div className="text-zinc-500 text-[11px] py-2">No caller app evaluations recorded yet.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {telemetryData.callerApps.map((item) => (
+                        <div key={item.app} className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-mono text-zinc-200 font-medium">{item.app}</span>
+                            <span className="font-mono text-zinc-400 text-[10px]">
+                              {item.count.toLocaleString()} ({item.percentage}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
+                            <div
+                              className="h-full bg-blue-500 rounded-full"
+                              style={{ width: `${item.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Delivery Channels Breakdown */}
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400 text-[10px] uppercase font-semibold">Delivery Channels</span>
+                    <span className="text-zinc-500 font-mono text-[10px]">
+                      {telemetryData?.channels?.length || 0} channels
+                    </span>
+                  </div>
+
+                  {(!telemetryData?.channels || telemetryData.channels.length === 0) ? (
+                    <div className="text-zinc-500 text-[11px] py-2">No channel data recorded yet.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {telemetryData.channels.map((ch) => (
+                        <div key={ch.channel} className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-mono text-sky-300 font-medium">{ch.channel}</span>
+                            <span className="font-mono text-zinc-400 text-[10px]">
+                              {ch.count.toLocaleString()} ({ch.percentage}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
+                            <div
+                              className="h-full bg-sky-500 rounded-full"
+                              style={{ width: `${ch.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Top Evaluator Actors */}
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                  <span className="text-zinc-400 text-[10px] uppercase font-semibold block">Top Evaluators (Targeting Keys)</span>
+                  {(!telemetryData?.actors || telemetryData.actors.length === 0) ? (
+                    <div className="text-zinc-500 text-[11px] py-1">No actors tracked yet.</div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {telemetryData.actors.map((actor, i) => (
+                        <div
+                          key={i}
+                          className="p-1.5 rounded bg-zinc-900 border border-zinc-850 flex items-center justify-between font-mono text-[10px]"
+                        >
+                          <span className="text-zinc-200 truncate">{actor.targetingKey}</span>
+                          <span className="text-emerald-400 ml-2 shrink-0">{actor.evaluationCount} evals</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent Evaluation Stream (Last 50 Logs) */}
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
+                  <span className="text-zinc-400 text-[10px] uppercase font-semibold block">
+                    Recent Evaluation Stream (Last 50)
+                  </span>
+                  {(!telemetryData?.recentLogs || telemetryData.recentLogs.length === 0) ? (
+                    <div className="text-zinc-500 text-[11px] py-2 text-center">No recent evaluations recorded.</div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-64 overflow-y-auto divide-y divide-zinc-900">
+                      {telemetryData.recentLogs.map((log) => (
+                        <div key={log.id} className="pt-1.5 pb-1 flex flex-col space-y-0.5">
+                          <div className="flex items-center justify-between text-[10px] font-mono">
+                            <span className="text-zinc-200 font-semibold">{log.targetingKey || 'anonymous'}</span>
+                            <span className="text-zinc-500">{new Date(log.evaluatedAt).toLocaleTimeString()}</span>
+                          </div>
+                          <div className="flex items-center space-x-1.5 text-[9px] font-mono text-zinc-400">
+                            <span className="text-blue-400">app:{log.callerApp || 'unknown'}</span>
+                            <span>&bull;</span>
+                            <span className="text-sky-400">ch:{log.channel || 'web'}</span>
+                            <span>&bull;</span>
+                            <span className="text-emerald-400 font-semibold">&rarr; {log.variant}</span>
+                            <span className="text-zinc-600">({log.reason})</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {/* Tab 3: RULES (Rule Hierarchy Tree) */}

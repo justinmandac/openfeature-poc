@@ -160,12 +160,22 @@ class FlagService {
       throw new Error('Missing required fields: key, type, default_variant, variants, description');
     }
 
-    if (variants[default_variant] === undefined) {
+    let normalizedVariants = variants;
+    if (Array.isArray(variants)) {
+      normalizedVariants = {};
+      for (const item of variants) {
+        if (item && item.key !== undefined) {
+          normalizedVariants[item.key] = item.value;
+        }
+      }
+    }
+
+    if (normalizedVariants[default_variant] === undefined) {
       throw new Error(`Default variant "${default_variant}" must exist in defined variants`);
     }
 
     if (schema) {
-      validateAgainstSchema(typeof schema === 'string' ? JSON.parse(schema) : schema, variants);
+      validateAgainstSchema(typeof schema === 'string' ? JSON.parse(schema) : schema, normalizedVariants);
     }
 
     const existing = await db('flags').where({ key }).first();
@@ -206,7 +216,7 @@ class FlagService {
       state,
       lifecycle_state,
       default_variant,
-      variants: JSON.stringify(variants),
+      variants: JSON.stringify(normalizedVariants),
       rules: JSON.stringify(rules),
       prerequisites: JSON.stringify(prerequisites),
       schema: schema ? JSON.stringify(schema) : null,
@@ -248,6 +258,16 @@ class FlagService {
 
     if (existing.lifecycle_state === 'GRADUATED' && updates.lifecycle_state !== 'ENABLED') {
       throw new Error(`Flag "${key}" is GRADUATED (frozen read-only). You must un-graduate it before changing configuration.`);
+    }
+
+    if (updates.variants && Array.isArray(updates.variants)) {
+      const normalizedVariants = {};
+      for (const item of updates.variants) {
+        if (item && item.key !== undefined) {
+          normalizedVariants[item.key] = item.value;
+        }
+      }
+      updates.variants = normalizedVariants;
     }
 
     const merged = {
