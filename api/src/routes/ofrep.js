@@ -106,13 +106,13 @@ router.post('/evaluate/flags', async (req, res) => {
     const versionString = flags.map(f => `${f.key}:${f.version}:${f.updated_at}`).join('|');
     const etag = `"${crypto.createHash('md5').update(partitionKey + versionString + JSON.stringify(context)).digest('hex')}"`;
 
+    res.setHeader('ETag', etag);
+
     // Check If-None-Match header for 304 Not Modified
     const clientEtag = req.headers['if-none-match'];
     if (clientEtag && clientEtag === etag) {
       return res.status(304).end();
     }
-
-    res.setHeader('ETag', etag);
 
     const callerApp = resolveCallerApp(req, context);
     const targetingKey = context.targetingKey || context.userId || context.user_id || 'anonymous';

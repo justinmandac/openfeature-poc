@@ -68,6 +68,7 @@ describe('Central Feature Gateway - Multi-Channel OFREP Proxy', () => {
       .send({ context });
 
     expect(cachedRes.statusCode).toBe(304);
+    expect(cachedRes.headers.etag).toBe(res.headers.etag);
   });
 
   test('POST /ofrep/v1/evaluate/flags/:key proxies single flag evaluation', async () => {

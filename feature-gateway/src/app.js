@@ -155,8 +155,9 @@ app.post('/ofrep/v1/evaluate/flags', async (req, res) => {
 
     // If Core API reports 304 Not Modified, pass it directly back to client
     if (upstreamRes.status === 304) {
-      if (upstreamRes.headers.etag) {
-        res.setHeader('ETag', upstreamRes.headers.etag);
+      const returnEtag = upstreamRes.headers.etag || req.headers['if-none-match'];
+      if (returnEtag) {
+        res.setHeader('ETag', returnEtag);
       }
       return res.status(304).end();
     }
