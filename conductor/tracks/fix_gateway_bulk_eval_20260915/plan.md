@@ -7,7 +7,7 @@
     - [x] Confirm red test output indicating missing flag resolution in bulk evaluation response
 - [x] Task: Conductor - User Manual Verification 'Diagnose and Reproduce Bulk Evaluation Behavior' (Protocol in workflow.md)
 
-## Phase 2: Fix Gateway Forwarding and ETag Caching
+## Phase 2: Fix Gateway Forwarding and ETag Caching [checkpoint: 47e45aa]
 
 - [x] Task: Resolve Gateway Parameter and Context Forwarding [515ae6b]
     - [x] Write unit and integration tests for query parameter resolution (`appTag`, `appId`, `channel`, `bu`)
@@ -15,7 +15,7 @@
 - [x] Task: Ensure Consistent ETag Header and 304 Response Propagation [1614c73]
     - [x] Write tests verifying 304 Not Modified responses on valid ETag match
     - [x] Ensure ETag headers are cleanly mirrored between Core API and client
-- [ ] Task: Conductor - User Manual Verification 'Fix Gateway Forwarding and ETag Caching' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Fix Gateway Forwarding and ETag Caching' (Protocol in workflow.md)
 
 ## Phase 3: Monorepo Verification and Regression Testing
 
