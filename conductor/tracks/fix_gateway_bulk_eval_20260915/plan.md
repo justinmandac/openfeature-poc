@@ -2,9 +2,9 @@
 
 ## Phase 1: Diagnose and Reproduce Bulk Evaluation Behavior
 
-- [ ] Task: Isolate and Reproduce Failure in Gateway Tests
-    - [ ] Write targeted integration test reproducing the exact bulk evaluation payload and inspecting upstream communication
-    - [ ] Confirm red test output indicating missing flag resolution in bulk evaluation response
+- [x] Task: Isolate and Reproduce Failure in Gateway Tests [57dcca4]
+    - [x] Write targeted integration test reproducing the exact bulk evaluation payload and inspecting upstream communication
+    - [x] Confirm red test output indicating missing flag resolution in bulk evaluation response
 - [ ] Task: Conductor - User Manual Verification 'Diagnose and Reproduce Bulk Evaluation Behavior' (Protocol in workflow.md)
 
 ## Phase 2: Fix Gateway Forwarding and ETag Caching
