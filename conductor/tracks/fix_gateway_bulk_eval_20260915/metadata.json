@@ -1,8 +1,8 @@
 {
   "track_id": "fix_gateway_bulk_eval_20260915",
   "type": "bug",
-  "status": "new",
+  "status": "completed",
   "created_at": "2026-09-15T11:12:00Z",
-  "updated_at": "2026-09-15T11:12:00Z",
+  "updated_at": "2026-09-15T12:37:00Z",
   "description": "Fix Feature Gateway bulk evaluation proxying and test suite"
 }
