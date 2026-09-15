@@ -139,7 +139,7 @@ app.post('/ofrep/v1/evaluate/flags', async (req, res) => {
     if (appTag) queryParams.set('appTag', appTag);
     if (channel) queryParams.set('channel', channel);
     if (bu) queryParams.set('bu', bu);
-    if (appId || resolvedClientApp) queryParams.set('appId', appId || resolvedClientApp);
+    if (appId) queryParams.set('appId', appId);
 
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 

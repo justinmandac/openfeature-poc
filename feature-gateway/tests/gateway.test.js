@@ -150,10 +150,29 @@ describe('Central Feature Gateway - Multi-Channel OFREP Proxy', () => {
       });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.flags).toBeDefined();
     const nonWealth = res.body.flags.filter(
       (f) => f.key.startsWith('retail.') || f.key.startsWith('cards.')
     );
     expect(nonWealth.length).toBe(0);
   });
+
+  test('POST /ofrep/v1/evaluate/flags?appId=retail-copilot filters strictly to copilot application', async () => {
+    const res = await request(app)
+      .post('/ofrep/v1/evaluate/flags?appId=retail-copilot')
+      .send({
+        context: {
+          targetingKey: 'user-sg-vip',
+          country: 'SG',
+          userTier: 'PREMIUM'
+        }
+      });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.flags).toBeDefined();
+    const flagKeys = res.body.flags.map((f) => f.key);
+    expect(flagKeys).toContain('retail.copilot.gemini-ui');
+    const nonCopilot = res.body.flags.filter((f) => f.key.startsWith('wealth.'));
+    expect(nonCopilot.length).toBe(0);
+  });
 });
+
