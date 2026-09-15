@@ -18,6 +18,9 @@
     "dev:webapp": "npm --workspace=webapp run dev",
     "dev": "concurrently -n \"api,admin,bff,gw,web\" -c \"blue,green,yellow,cyan,magenta\" \"npm run dev:api\" \"npm run dev:admin\" \"npm run dev:bff\" \"npm run dev:gateway\" \"npm run dev:webapp\"",
     "test": "npm --workspace=api test && npm --workspace=webapp-bff test && npm --workspace=feature-gateway test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm test && npm run test:e2e",
     "build": "npm run build --workspaces --if-present",
     "android:build": "cd android-app && ./gradlew assembleDebug",
     "android:install": "cd android-app && ./gradlew installDebug",
@@ -25,6 +28,7 @@
     "android:emulator": "$HOME/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_36.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^9.1.2"
   }
 }

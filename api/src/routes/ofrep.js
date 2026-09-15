@@ -88,7 +88,10 @@ router.post('/evaluate/flags', async (req, res) => {
     const appTag = req.query.appTag || req.body.appTag || context.appTag || (context.appId === 'webapp' ? 'webapp' : undefined);
     const channel = req.query.channel || req.body.channel || context.channelId || context.channel;
     const bu = req.query.bu || req.body.bu || req.query.businessUnitId || context.businessUnit;
-    const appId = req.query.appId || req.body.appId || context.applicationId || (context.appId && context.appId !== 'webapp' ? context.appId : undefined);
+    const appId = (req.query.appId && req.query.appId !== 'webapp' ? req.query.appId : undefined) ||
+                  (req.body.appId && req.body.appId !== 'webapp' ? req.body.appId : undefined) ||
+                  context.applicationId ||
+                  (context.appId && context.appId !== 'webapp' ? context.appId : undefined);
 
     const filters = {};
     if (appTag) filters.appTag = appTag;

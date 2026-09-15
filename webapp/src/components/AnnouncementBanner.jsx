@@ -20,6 +20,9 @@ export default function AnnouncementBanner() {
 
   return (
     <div
+      data-testid="announcement-banner"
+      role="region"
+      aria-label="Platform Announcement"
       className={`border-b text-xs transition-colors ${
         isWarning
           ? 'bg-amber-50 border-amber-200 text-amber-900'

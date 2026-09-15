@@ -219,7 +219,12 @@ exports.seed = async function(knex) {
       lifecycle_state: 'ENABLED',
       default_variant: 'off',
       variants: JSON.stringify({ on: true, off: false }),
-      prerequisites: JSON.stringify([]),
+      prerequisites: JSON.stringify([
+        {
+          flagKey: 'retail.copilot.gemini-ui',
+          variant: 'on'
+        }
+      ]),
       rules: JSON.stringify([
         {
           id: 'rule-apac-premier-segment',

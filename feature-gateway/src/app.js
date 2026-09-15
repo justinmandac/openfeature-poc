@@ -108,7 +108,10 @@ app.post('/ofrep/v1/evaluate/flags', async (req, res) => {
     const appTag = req.query.appTag || req.body.appTag || incomingContext.appTag || (incomingContext.appId === 'webapp' ? 'webapp' : undefined);
     const channel = req.query.channel || req.body.channel || incomingContext.channelId || incomingContext.channel || 'web';
     const bu = req.query.bu || req.body.bu || req.query.businessUnitId || incomingContext.businessUnit;
-    const appId = req.query.appId || req.body.appId || incomingContext.applicationId || (incomingContext.appId && incomingContext.appId !== 'webapp' ? incomingContext.appId : undefined);
+    const appId = (req.query.appId && req.query.appId !== 'webapp' ? req.query.appId : undefined) ||
+                  (req.body.appId && req.body.appId !== 'webapp' ? req.body.appId : undefined) ||
+                  incomingContext.applicationId ||
+                  (incomingContext.appId && incomingContext.appId !== 'webapp' ? incomingContext.appId : undefined);
 
     // Context Sanitization: Ensure public clients cannot inject internal system overrides
     const sanitizedContext = { ...incomingContext };

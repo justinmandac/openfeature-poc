@@ -11,3 +11,5 @@ build
 coverage
 .cache
 session.txt
+test-results/
+playwright-report/

@@ -104,7 +104,7 @@ export class OfrepWebProvider {
       }
 
       const response = await axios.post(
-        `${this.baseUrl}/ofrep/v1/evaluate/flags?channel=${encodeURIComponent(channel)}&appTag=${encodeURIComponent(appId)}&appId=${encodeURIComponent(appId)}`,
+        `${this.baseUrl}/ofrep/v1/evaluate/flags?channel=${encodeURIComponent(channel)}&appTag=${encodeURIComponent(appId)}`,
         { context: { ...this.currentContext, appId, callerApp: appId } },
         { headers, timeout: 4000, validateStatus: status => status === 200 || status === 304 }
       );
